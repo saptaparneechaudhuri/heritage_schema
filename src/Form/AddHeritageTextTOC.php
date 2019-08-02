@@ -102,11 +102,8 @@ class AddHeritageTextTOC extends FormBase {
       ];
       $form['textinfo']['title'] = [
         '#type' => 'item',
-        // '#markup' => $this->t(
-        // 'Heritage Text Name: ' . $node_info->title->value .
-        // '<small><i> (' . $node_info->
-        // field_machine_name->value . ')</i></small>'),
-        '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
+        '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
+        // '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
       ];
       $form['textinfo']['levels'] = [
         '#type' => 'item',
@@ -215,13 +212,7 @@ class AddHeritageTextTOC extends FormBase {
         '#title' => $this->t('No.of Levels for this text'),
         '#required' => TRUE,
         '#description' => $this->t('E.g. 2 levels for Gita (Chapter and Sloka), 3 levels for Valmiki Ramayana (Kanda, Sarga, Sloka) etc.'),
-        '#options' => [
-          '1' => '1',
-          '2' => '2',
-          '3' => '3',
-          '4' => '4',
-          '5' => '5',
-        ],
+        '#options' => ['1' => '1','2' => '2','3' => '3','4' => '4','5' => '5'],
         '#default_value' => isset($form['levels']['#default_value']) ? $form['levels']['#default_value'] : NULL,
         '#ajax' => [
           'event' => 'change',
