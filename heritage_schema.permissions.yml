@@ -1,0 +1,3 @@
+# Permissions for the heritage_schema module
+'add heritage text':
+  title: Add a new Heritage Text

@@ -1,0 +1,11 @@
+# yaml file to define one or more local task(s).
+heritage_schema.addtoc:
+  route_name: heritage_schema.addtoc
+  title: Add TOC Structure
+  base_route: entity.node.canonical
+  weight: 2
+heritage_schema.addcontent:
+  route_name: heritage_bulk_upload.addcontent
+  title: Import Content
+  base_route: entity.node.canonical
+  weight: 2

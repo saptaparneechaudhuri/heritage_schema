@@ -1,0 +1,565 @@
+<?php
+
+/**
+ * @file
+ * Implementation of hook_form_alter.
+ */
+
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\field\Entity\FieldStorageConfig;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * @file
+ * Implements hook_form_alter.
+ */
+
+/**
+ * Add a machine name field to the heritage text.
+ */
+function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  print_r($form_id);
+  echo "</br>";
+
+  if ($form_id == 'node_heritage_text_form') {
+    $form['field_machine_name']['#access'] = FALSE;
+    $form['field_levels']['#access'] = FALSE;
+    $form['field_level_labels']['#access'] = FALSE;
+    // $form['#validate'][] = '_heritage_text_form_validate';
+  }
+  if ($form_id == 'node_heritage_text_edit_form') {
+    $form['field_machine_name']['#access'] = FALSE;
+    $form['field_levels']['#access'] = FALSE;
+    $form['field_level_labels']['#access'] = FALSE;
+  }
+  if ($form_id == 'node_source_node_form') {
+    $form['actions']['submit']['#submit'][] = 'redirect_to_text_node';
+
+  }
+
+}
+
+/**
+ * @file
+ * Implements hook_node_insert()
+ */
+
+/**
+ * Create content type and vocabulary and add basic fields.
+ */
+function heritage_schema_node_insert(NodeInterface $node) {
+
+  if ($node->getType() == 'heritage_text') {
+    $response = new RedirectResponse(\Drupal::url('heritage_schema.addtoc', ['node' => $node->id()], ['absolute' => TRUE]));
+    $response->send();
+  }
+  if ($node->getType() == "source_node") {
+
+    $params = [
+      'source_nodeId' => $node->id(),
+      'title' => $node->title->value,
+      'language' => $node->field_language->target_id,
+      'author' => $node->field_author_name->target_id,
+      'format' => [$node->field_format->value],
+      'type' => $node->field_type->value,
+    ];
+
+    _add_source_info($params, $_GET["textid"]);
+
+  }
+
+}
+
+/**
+ * Custom function to add a field to an entity.
+ *
+ * @param string $bundle
+ *   Name of the entity bundle.
+ * @param object $entity_type
+ *   Type of entity ie. whether node/taxonomy/user.
+ * @param array $labels
+ *   Array of field labels.
+ * @param string $machine_names
+ *   Array of Machine Names of the field.
+ * @param array $field_types
+ *   Array of Field Types to be added.
+ */
+function add_other_fields($bundle, $entity_type, array $labels, $machine_names, array $field_types, $cardinality) {
+  for ($i = 0; $i < count($field_types); $i++) {
+    $fieldname = strtolower($machine_names[$i]);
+    if ($field_types[$i] == 'entity_reference') {
+      $handler = 'default:taxonomy_term';
+      $handler_settings = ['target_bundles' => [$bundle]];
+      $settings_create = ['target_type' => 'taxonomy_term'];
+      $settings_config = ['handler' => $handler, 'handler_settings' => $handler_settings];
+    }
+    elseif ($field_types[$i] == 'file') {
+      $handler = 'default';
+      $handler_settings = [];
+      $settings_create = [];
+      $settings_config = [
+        'handler' => $handler,
+        'handler_settings' => $handler_settings,
+        'file_extensions' => 'mp3',
+        'file_directory' => $bundle,
+      ];
+    }
+    else {
+      $handler = 'default';
+      $handler_settings = [];
+      $settings_create = [];
+      $settings_config = [
+        'handler' => $handler,
+        'handler_settings' => $handler_settings,
+      ];
+    }
+    if (empty($fieldStorageMicrositesfield = FieldStorageConfig::loadByName($entity_type, $fieldname))) {
+      $fieldStorage = FieldStorageConfig::create(
+      [
+        'field_name'             => $fieldname,
+        'entity_type'            => $entity_type,
+        'type'                   => $field_types[$i],
+        'translatable'           => TRUE,
+        'persist_with_no_fields' => FALSE,
+        'cardinality'             => $cardinality[$i],
+        'settings'                 => $settings_create,
+      ]
+      );
+      $fieldStorageSaved = $fieldStorage->save();
+    }
+    $all_bundle_fields = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type, $bundle);
+    if (!isset($all_bundle_fields[$fieldname])) {
+      $field = FieldConfig::create(
+                        [
+                          'entity_type' => $entity_type,
+                          'field_name' => $fieldname,
+                          'bundle' => $bundle,
+                          'label' => $labels[$i],
+                          'settings' => $settings_config,
+                        ]
+      );
+      $field->save();
+
+      // Make the field available in the entity creation form.
+      entity_get_form_display($entity_type, $bundle, 'default')
+        ->setComponent(
+      $fieldname
+      )
+        ->save();
+
+      // Assign display settings for the 'default' and 'teaser' view modes.
+      entity_get_display($entity_type, $bundle, 'default')
+        ->setComponent($fieldname)
+        ->save();
+    }
+    else {
+      $field_info = FieldConfig::loadByName($entity_type, $bundle, $fieldname);
+      $field_info->setLabel($labels[$i]);
+      $field_info->save();
+    }
+  }
+  $message = t("Fields added successfully");
+  return $message;
+}
+
+/**
+ * Custom function to add a vocabulary for the heritage text.
+ *
+ * @param string $title
+ *   Title of the content type.
+ * @param string $machineName
+ *   Unique machine name of the content type.
+ */
+function add_vocabulary($title, $machineName) {
+  $vocabularies = Vocabulary::loadMultiple();
+  if (!isset($vocabularies[$machineName])) {
+    $vocabulary = Vocabulary::create(
+    [
+      'vid' => $machineName,
+      // 'description' => t('Vocabulary for storing the levels of heritage text <em>' . $title . '</em>.'),
+      'description' => t('Vocabulary for storing the levels of heritage text <em> @title </em>.', ['@title' => $title]),
+      'name' => $title,
+    ]
+    );
+    $vocabulary->save();
+    $labels = ['Index', 'Title', 'No.of Sub Levels', 'Position'];
+    $machine_names = [
+      'field_index',
+      'field_title',
+      'field_sub_levels',
+      'field_position',
+    ];
+    $types = ['integer', 'text', 'integer', 'text'];
+    $cardinality = [1, 1, 1, 1];
+    $field_status = add_other_fields($vocabulary->id(), 'taxonomy_term', $labels, $machine_names, $types, $cardinality);
+  }
+  $message = t(
+        "Vocabulary @a added successfully",
+        ['@a' => $title]
+  );
+  return $message;
+}
+
+/**
+ * Custom function to add a term to a vocabulary.
+ *
+ * @param int $id
+ *   Index of the term - Relative position in the heritage text structure.
+ * @param string $term_name
+ *   Name of the taxonomy term that has to be created.
+ * @param string $vid
+ *   Vocabulary name of the term.
+ * @param int $parent
+ *   Parent id of the term, if any.
+ */
+function add_term($id, $term_name, $vid, $parent = NULL) {
+  $term = Term::create([
+    'vid' => $vid,
+    'name' => $term_name,
+    'parent' => [$parent],
+  ]);
+  $term->set('field_index', $id);
+  if ($parent != NULL) {
+    $parent_term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($parent);
+    $parent_position = $parent_term->field_position->value;
+    $sublevels = $parent_term->field_sub_levels->value;
+    if (!isset($sublevels)) {
+      $sublevels = 1;
+    }
+    else {
+      $sublevels = $sublevels + 1;
+    }
+    $parent_term->field_sub_levels->value = $sublevels;
+    $parent_term->save();
+    $term_position = $parent_position . '.' . $id;
+  }
+  else {
+    $term_position = $id;
+  }
+  $term->set('field_position', $term_position);
+  $term->save();
+  $message = t(
+        "Taxonomy term @a added successfully",
+        ['@a' => $term_name]
+  );
+  return $message;
+}
+
+/**
+ * Custom function to delete a term to a vocabulary.
+ *
+ * @param int $id
+ *   Index of the term - Relative position in the heritage text structure.
+ * @param string $term_name
+ *   Name of the taxonomy term that has to be deleted.
+ * @param string $vid
+ *   Vocabulary name of the term.
+ * @param int $parent
+ *   Parent id of the term, if any.
+ */
+function delete_term($id, $term_name, $vid, $parent = NULL) {
+  if ($parent == NULL) {
+    $parent = 0;
+  }
+  // Get the taxonomy term id, load the term and delete it.
+  $tid_to_delete = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE name = :name AND vid = :vid AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent)", [
+    ':name' => $term_name,
+    ':vid' => $vid,
+    ':parent' => $parent,
+  ])->fetchField();
+  $controller = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $term_to_delete = $controller->load($tid_to_delete);
+  $controller->delete($term_to_delete);
+
+  if ($parent != 0) {
+    $parent_term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($parent);
+    $sublevels = $parent_term->field_sub_levels->value;
+    if (!isset($sublevels)) {
+      $sublevels = 0;
+    }
+    else {
+      $sublevels = $sublevels - 1;
+    }
+    $parent_term->field_sub_levels->value = $sublevels;
+    $parent_term->save();
+  }
+  $message = t(
+        "Taxonomy term @a deleted successfully",
+        ['@a' => $term_name]
+  );
+  return $message;
+}
+
+/**
+ * Custom function to create a content type.
+ *
+ * @param string $title
+ *   Title of the content type.
+ * @param string $machineName
+ *   Unique machine name of the content type.
+ */
+function create_content_type($title, $machineName) {
+  $content_type = NodeType::create([
+    'type' => $machineName,
+    'name' => $title,
+    // 'description' => t('Content type for <em>' . $title . '</em> with trasnliteration enabled'),
+    'description' => t('Content type for <em>@title</em> with trasnliteration enabled',
+  ['@title' => $title]),
+    'new_revision' => FALSE,
+    'status' => TRUE,
+    'preview_mode' => 0,
+    'display_submitted' => FALSE,
+  ]);
+  $content_type->save();
+  node_add_body_field($content_type);
+  return $content_type;
+}
+
+/**
+ * Batch operation for creating taxonomy terms.
+ */
+function create_taxonomy_terms_batch($id, $vid, $term_name, $operation_details, &$context, $parent = NULL) {
+  // Create taxonomy term.
+  $term_status = add_term($id, $term_name, $vid, $parent);
+
+  // Store some results for post-processing in the 'finished' callback.
+  $context['results'][] = $id;
+
+  // Optional message displayed under the progressbar.
+  $context['message'] = t('Running Batch "@id" @details',
+        ['@id' => $id, '@details' => $operation_details]
+  );
+}
+
+/**
+ * Batch 'finished' callback used by create_taxonomy_terms_batch.
+ */
+function create_taxonomy_terms_batch_finished($success, $results, $operations) {
+  $messenger = \Drupal::messenger();
+  if ($success) {
+    // Here we could do something meaningful with the results.
+    // We just display the number of nodes we processed...
+    $messenger->addMessage(t('@count terms created.', ['@count' => count($results)]));
+  }
+  else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    $messenger->addMessage(
+    t('An error occurred while processing @operation with arguments : @args',
+                [
+                  '@operation' => $error_operation[0],
+                  '@args' => print_r($error_operation[0], TRUE),
+                ]
+    )
+    );
+  }
+}
+
+/**
+ * Batch operation for deleting taxonomy terms.
+ */
+function delete_taxonomy_terms_batch($id, $vid, $term_name, $operation_details, &$context, $parent = NULL) {
+  // Delete taxonomy term.
+  $term_status = delete_term($id, $term_name, $vid, $parent);
+
+  // Store some results for post-processing in the 'finished' callback.
+  $context['results'][] = $id;
+
+  // Optional message displayed under the progressbar.
+  $context['message'] = t('Running Batch "@id" @details',
+        ['@id' => $id, '@details' => $operation_details]
+  );
+}
+
+/**
+ * Batch 'finished' callback used by delete_taxonomy_terms_batch.
+ */
+function delete_taxonomy_terms_batch_finished($success, $results, $operations) {
+  $messenger = \Drupal::messenger();
+  if ($success) {
+    // Here we could do something meaningful with the results.
+    // We just display the number of nodes we processed...
+    $messenger->addMessage(t('@count terms deleted.', ['@count' => count($results)]));
+  }
+  else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    $messenger->addMessage(
+    t('An error occurred while processing @operation with arguments : @args',
+                [
+                  '@operation' => $error_operation[0],
+                  '@args' => print_r($error_operation[0], TRUE),
+                ]
+    )
+    );
+  }
+}
+
+/**
+ * Custom function to add source to a text.
+ *
+ * @param array $params
+ *   An array containing title, language, format, author and type of the source.
+ * @param int $textid
+ *   Unique Id of the heritage text.
+ *
+ * @return bool
+ *   Returns a boolean
+ */
+function _add_source_info(array $params, $textid) {
+  $machine_names = []; $types = [];$cardinality = [];
+  $format = '';
+  $format_tmp_array = $params['format'];
+  for ($i = 0; $i < count($format_tmp_array); $i++) {
+    if ($i == 0) {
+      $format = $format_tmp_array[$i];
+    }
+    else {
+      $format = $format . ',' . $format_tmp_array[$i];
+    }
+  }
+  $node = Node::load($textid);
+  // Insert source node structure to database.
+  $db = \Drupal::database();
+  $source_id = $db->insert('heritage_source_info')
+    ->fields([
+      'id' => $params['source_nodeId'],
+      'text_id' => $textid,
+      'title' => $params['title'],
+      'language' => $params['language'],
+      'author' => $params['author'],
+      'format' => $format,
+      'type' => $params['type'],
+                                // Added the source node id.
+    ])
+    ->execute();
+  $textname = $node->field_machine_name->value;
+  $field_name = 'field_' . $textname . '_' . $source_id;
+  for ($i = 0; $i < count($format_tmp_array); $i++) {
+    $machine_names[] = $field_name . '_' . strtolower($format_tmp_array[$i]);
+    if ($format_tmp_array[$i] == 'text') {
+      $types[] = 'text_long';
+      $labels[] = $params['title'];
+      $cardinality[] = 1;
+    }
+    if ($format_tmp_array[$i] == 'audio') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+    if ($format_tmp_array[$i] == 'video') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+  }
+
+  // print_r($textname);print_r($field_name);print_r($machine_names);exit;
+  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $cardinality);
+  return TRUE;
+}
+
+/**
+ * Custom function to update source of a text.
+ *
+ * @param array $params
+ *   An array containing title, language, format, author and type of the source.
+ * @param int $sourceid
+ *   Unique Id of the source of the heritage text.
+ *
+ * @return bool
+ *   Return a boolean
+ */
+function _update_source_info(array $params, $sourceid) {
+  $machine_names = []; $types = [];$cardinality = [];
+  $format = '';
+  $format_tmp_array = $params['format'];
+  for ($i = 0; $i < count($format_tmp_array); $i++) {
+    if ($i == 0) {
+      $format = $format_tmp_array[$i];
+    }
+    else {
+      $format = $format . ',' . $format_tmp_array[$i];
+    }
+  }
+  $old_source_info = db_query("SELECT * FROM `heritage_source_info` WHERE id = :sourceid", [':sourceid' => $sourceid])->fetchAll();
+  $textid = $old_source_info[0]->text_id;
+  $node = Node::load($textid);
+  // Update source node structure in database.
+  $db = \Drupal::database();
+  $db->update('heritage_source_info')
+    ->fields([
+      'title' => $params['title'],
+      'language' => $params['language'],
+      'author' => $params['author'],
+      'format' => $format,
+      'type' => $params['type'],
+    ])
+    ->condition('id', $sourceid, '=')
+    ->execute();
+  $textname = $node->field_machine_name->value;
+  $field_name = 'field_' . $textname . '_' . $sourceid;
+  for ($i = 0; $i < count($format_tmp_array); $i++) {
+    $machine_names[] = $field_name . '_' . strtolower($format_tmp_array[$i]);
+    if ($format_tmp_array[$i] == 'text') {
+      $types[] = 'text_long';
+      $labels[] = $params['title'];
+      $cardinality[] = 1;
+    }
+    if ($format_tmp_array[$i] == 'audio') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+    if ($format_tmp_array[$i] == 'video') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+  }
+  // print_r($textname);print_r($field_name);print_r($machine_names);exit;
+  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $cardinality);
+  return TRUE;
+}
+
+/**
+ * Function to find the depth of the given element.
+ */
+function find_depth($input, $startDepth = 0) {
+  if (is_array($input)) {
+    $max = $startDepth;
+    foreach ($input as $i) {
+      // Check what the depth of the given element is.
+      $result = find_depth($i, $startDepth + 1);
+      // We only care about the maximum value.
+      if ($result > $max) {
+        $max = $result;
+      }
+    }
+    return $max;
+  }
+  else {
+    // This isn't an array, so it's assumed not to be a container.
+    // This doesn't add any depth to the parent array,
+    // So just return $startDepth.
+    return $startDepth;
+  }
+}
+
+/**
+ * Custom function to redirect source of a text.
+ */
+function redirect_to_text_node(array $form, FormStateInterface $form_state) {
+
+  $nid = $_GET["textid"];
+
+  $form_state->setRedirect('entity.node.canonical', ['node' => $nid]);
+}

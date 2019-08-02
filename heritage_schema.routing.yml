@@ -1,0 +1,22 @@
+heritage_schema.addtoc:
+  path: '/node/{node}/add/toc'
+  defaults:
+    _form: '\Drupal\heritage_schema\Form\AddHeritageTextTOC'
+    _title: 'Add TOC for the Heritage Text'
+  requirements:
+    _permission: 'add heritage text'
+    _custom_access: '\Drupal\heritage_schema\Controller\HeritageText::showtoc'
+heritage_schema.addtocnode:
+  path: '/node/{node}/add/toc/node'
+  defaults:
+    _form: '\Drupal\heritage_schema\Form\AddTOCNode'
+    _title: 'Add a TOC Node Structure'
+  requirements:
+    _permission: 'add heritage text'
+heritage_schema.addsource:
+  path: '/node/{node}/add/source'
+  defaults:
+    _form: '\Drupal\heritage_schema\Form\AddSourceNode'
+    _title: 'Add a Source Node to the text'
+  requirements:
+    _permission: 'add heritage text'
