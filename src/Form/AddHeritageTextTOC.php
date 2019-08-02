@@ -110,13 +110,13 @@ class AddHeritageTextTOC extends FormBase {
       ];
       $form['textinfo']['levels'] = [
         '#type' => 'item',
-        // '#markup' => $this->t('No.of Levels: ' . $node_info->field_levels->value),
-        '#markup' => $this->t('No.of Levels: @node_info', ['@node_info' => $node_info->field_levels->value]),
+         '#markup' => $this->t('No.of Levels: ' . $node_info->field_levels->value),
+        // '#markup' => $this->t('No.of Levels: @node_info', ['@node_info' => $node_info->field_levels->value]),
       ];
       $form['textinfo']['level_labels_info'] = [
         '#type' => 'item',
-        // '#markup' => $this->t('Level Labels: ' . $node_info->field_level_labels->value),
-        '#markup' => $this->t('Level Labels: @node_info', ['@node_info' => $node_info->field_level_labels->value]),
+         '#markup' => $this->t('Level Labels: ' . $node_info->field_level_labels->value),
+        // '#markup' => $this->t('Level Labels: @node_info', ['@node_info' => $node_info->field_level_labels->value]),
       ];
       $attributes = [
         'class' => ['use-ajax'],
