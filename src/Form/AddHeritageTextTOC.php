@@ -102,18 +102,18 @@ class AddHeritageTextTOC extends FormBase {
       ];
       $form['textinfo']['title'] = [
         '#type' => 'item',
-        // '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
-        '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
+         // '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
+         '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
       ];
       $form['textinfo']['levels'] = [
         '#type' => 'item',
         // '#markup' => $this->t('No.of Levels: ' . $node_info->field_levels->value),
-         '#markup' => $this->t('No.of Levels: @node_info', ['@node_info' => $node_info->field_levels->value]),
+        '#markup' => $this->t('No.of Levels: @node_info', ['@node_info' => $node_info->field_levels->value]),
       ];
       $form['textinfo']['level_labels_info'] = [
         '#type' => 'item',
         // '#markup' => $this->t('Level Labels: ' . $node_info->field_level_labels->value),
-         '#markup' => $this->t('Level Labels: @node_info', ['@node_info' => $node_info->field_level_labels->value]),
+        '#markup' => $this->t('Level Labels: @node_info', ['@node_info' => $node_info->field_level_labels->value]),
       ];
       $attributes = [
         'class' => ['use-ajax'],
@@ -127,7 +127,7 @@ class AddHeritageTextTOC extends FormBase {
       // Get the text id from node.
       // Use dependency injection.
       $path = $this->currPath->getPath();
-      //$path = \Drupal::request()->getpathInfo();
+      // $path = \Drupal::request()->getpathInfo();
       $arg = explode('/', $path);
 
       // Text node id.
@@ -212,7 +212,7 @@ class AddHeritageTextTOC extends FormBase {
         '#title' => $this->t('No.of Levels for this text'),
         '#required' => TRUE,
         '#description' => $this->t('E.g. 2 levels for Gita (Chapter and Sloka), 3 levels for Valmiki Ramayana (Kanda, Sarga, Sloka) etc.'),
-        '#options' => ['1' => '1','2' => '2','3' => '3','4' => '4','5' => '5'],
+        '#options' => ['1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5'],
         '#default_value' => isset($form['levels']['#default_value']) ? $form['levels']['#default_value'] : NULL,
         '#ajax' => [
           'event' => 'change',
@@ -306,7 +306,7 @@ class AddHeritageTextTOC extends FormBase {
         $numLevels = $form_state->getValue($level_labels[0]);
         $parents = array_keys($numLevels);
         for ($i = 0; $i < count($parents); $i++) {
-          $getTermDetails = $this->getDetails($numLevels[$parents[$i]], $level_labels, $parents[$i], 1);
+          $getTermDetails = $this->getDetails($numLevels[$parents[$i]], $level_labels,1, $parents[$i]);
           // print("<pre>");print_r($getTermDetails);exit;
           for ($j = 0; $j < count($getTermDetails); $j++) {
             $this->createTermsBatch($getTermDetails[$j]['label'], $getTermDetails[$j]['value'], $vid, $getTermDetails[$j]['parent']);
@@ -409,8 +409,8 @@ class AddHeritageTextTOC extends FormBase {
       $operations[] = [
         'create_taxonomy_terms_batch',
       [
-        $i, $vid, $term_name,
-        $this->t('(Operation @operation)', ['@operation' => $i]), $parent,
+        $i, $vid, $term_name, $parent,
+        $this->t('(Operation @operation)', ['@operation' => $i]), 
       ],
       ];
     }
@@ -437,12 +437,12 @@ class AddHeritageTextTOC extends FormBase {
    * @param int $currentDepth
    *   Depth of the array.
    */
-  public function getDetails(array $levels, $label_levels, $parent, array $result = [], $currentDepth = 1) {
+  public function getDetails(array $levels, $label_levels,$currentDepth = 1, $parent, array $result = []) {
     $index = count($result);
     $parents = array_keys($levels);
     for ($j = 0; $j < count($parents); $j++) {
       if (is_array($levels[$parents[$j]])) {
-        $result = $this->getDetails($levels[$parents[$j]], $label_levels, $parents[$j], $result, $currentDepth + 1);
+        $result = $this->getDetails($levels[$parents[$j]], $label_levels, $currentDepth + 1, $parents[$j], $result);
       }
       else {
         if (isset($levels[$parents[$j]])) {

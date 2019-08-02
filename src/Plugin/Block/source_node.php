@@ -38,7 +38,7 @@ class source_node extends BlockBase {
 						]),
 					];
 		$path = \Drupal::request()->getpathInfo();
-                print_r($path);
+                //print_r($path);
 		$arg  = explode('/',$path);
 		$textId = $arg[2];
 		//$url = Url::fromRoute('heritage_schema.addsource', array('node' => $textId), array('attributes' => $attributes));

@@ -324,7 +324,7 @@ function create_content_type($title, $machineName) {
 /**
  * Batch operation for creating taxonomy terms.
  */
-function create_taxonomy_terms_batch($id, $vid, $term_name, $operation_details, &$context, $parent = NULL) {
+function create_taxonomy_terms_batch($id, $vid, $term_name, $parent = NULL, $operation_details, &$context) {
   // Create taxonomy term.
   $term_status = add_term($id, $term_name, $vid, $parent);
 
