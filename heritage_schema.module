@@ -24,8 +24,8 @@ use Drupal\Core\Form\FormStateInterface;
  * Add a machine name field to the heritage text.
  */
 function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  print_r($form_id);
-  echo "</br>";
+  // print_r($form_id);
+  // echo "</br>";
 
   if ($form_id == 'node_heritage_text_form') {
     $form['field_machine_name']['#access'] = FALSE;
