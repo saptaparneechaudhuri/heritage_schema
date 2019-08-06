@@ -103,10 +103,25 @@ class SourceNode extends BlockBase implements ContainerFactoryPluginInterface {
 
     // Fetch all the available sources.
     $available_sources = db_query("SELECT * FROM `heritage_source_info` WHERE text_id = :textid ORDER BY language DESC", [':textid' => $textId])->fetchAll();
+
     if (count($available_sources) > 0) {
       for ($i = 0; $i < count($available_sources); $i++) {
-        $table_name = 'node__field_' . $text_name . '_' . $available_sources[$i]->id . '_text';
-        $filed_name = 'field_' . $text_name . '_' . $available_sources[$i]->id . '_text_value';
+        // print_r($available_sources[$i]->format);
+        // echo "</br>";.
+        if ($available_sources[$i]->format == 'text') {
+          $table_name = 'node__field_' . $text_name . '_' . $available_sources[$i]->id . '_text';
+          $filed_name = 'field_' . $text_name . '_' . $available_sources[$i]->id . '_text_value';
+
+        }
+        else {
+          $table_name = 'node__field_' . $text_name . '_' . $available_sources[$i]->id . '_' . $available_sources[$i]->format;
+          // Look at structure for the audio field
+          // The file name is referred to as target_id.
+          $filed_name = 'field_' . $text_name . '_' . $available_sources[$i]->id . '_' . $available_sources[$i]->format . '_target_id';
+
+        }
+        // $table_name = 'node__field_' . $text_name . '_' . $available_sources[$i]->id . '_text';
+        // $filed_name = 'field_' . $text_name . '_' . $available_sources[$i]->id . '_text_value';
         // $langcode = 'dv';
         $content_present = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :text_name", [':text_name' => $text_name])->fetchField();
         $sources = $sources . $available_sources[$i]->title . '</br>(<small><i>Content Present: ' . $content_present . '</i></small>)</br>';
