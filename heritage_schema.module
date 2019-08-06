@@ -61,6 +61,13 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
       '#url' => Url::fromRoute('entity.taxonomy_term.add_form', ['taxonomy_vocabulary' => 'authors'], $options),
     ];
 
+    $form['field_publisher_name']['add_term_link'] = [
+      '#title' => t('Add publisher'),
+      '#type' => 'link',
+      '#url' => Url::fromRoute('entity.taxonomy_term.add_form', ['taxonomy_vocabulary' => 'publishers'], $options),
+
+    ];
+
   }
 
 }
