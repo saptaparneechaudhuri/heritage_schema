@@ -5,6 +5,8 @@
  * Implementation of hook_form_alter.
  */
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
@@ -25,8 +27,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // print_r($form_id);
-  // echo "</br>";
-
+  // echo "</br>";.
   if ($form_id == 'node_heritage_text_form') {
     $form['field_machine_name']['#access'] = FALSE;
     $form['field_levels']['#access'] = FALSE;
@@ -40,6 +41,25 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
   }
   if ($form_id == 'node_source_node_form') {
     $form['actions']['submit']['#submit'][] = 'redirect_to_text_node';
+
+  }
+
+  if ($form_id == 'node_heritage_text_form' || $form_id == 'node_heritage_text_edit_form' || $form_id == 'node_source_node_form' || $form_id == 'node_source_node_edit_form') {
+    $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
+
+    $options = [
+      'attributes' => [
+        'class' => ['use-ajax', 'button'],
+        'data-dialog-type' => 'modal',
+        'data-dialog-options' => json_encode(['width' => 400]),
+      ],
+      'query' => ['destination' => \Drupal::url('<current>')],
+    ];
+    $form['field_author_name']['add_term_link'] = [
+      '#title' => t('Add author'),
+      '#type' => 'link',
+      '#url' => Url::fromRoute('entity.taxonomy_term.add_form', ['taxonomy_vocabulary' => 'authors'], $options),
+    ];
 
   }
 
@@ -73,6 +93,17 @@ function heritage_schema_node_insert(NodeInterface $node) {
     _add_source_info($params, $_GET["textid"]);
 
   }
+
+}
+
+/**
+ * Delete test source.
+ */
+function heritage_schema_entity_delete(EntityInterface $entity) {
+
+  db_delete('heritage_source_info')
+    ->condition('id', $entity->id())
+    ->execute();
 
 }
 
@@ -182,7 +213,7 @@ function add_vocabulary($title, $machineName) {
     $vocabulary = Vocabulary::create(
     [
       'vid' => $machineName,
-      // 'description' => t('Vocabulary for storing the levels of heritage text <em>' . $title . '</em>.'),
+
       'description' => t('Vocabulary for storing the levels of heritage text <em> @title </em>.', ['@title' => $title]),
       'name' => $title,
     ]
@@ -308,7 +339,7 @@ function create_content_type($title, $machineName) {
   $content_type = NodeType::create([
     'type' => $machineName,
     'name' => $title,
-    // 'description' => t('Content type for <em>' . $title . '</em> with trasnliteration enabled'),
+
     'description' => t('Content type for <em>@title</em> with trasnliteration enabled',
   ['@title' => $title]),
     'new_revision' => FALSE,
