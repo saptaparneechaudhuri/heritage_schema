@@ -121,7 +121,7 @@ function heritage_schema_entity_delete(EntityInterface $entity) {
  * @param array $field_types
  *   Array of Field Types to be added.
  */
-function add_other_fields($bundle, $entity_type, array $labels, $machine_names, array $field_types, $cardinality) {
+function add_other_fields($bundle, $entity_type, array $labels, $machine_names, array $field_types, $format_tmp_array, $cardinality) {
   for ($i = 0; $i < count($field_types); $i++) {
     $fieldname = strtolower($machine_names[$i]);
     if ($field_types[$i] == 'entity_reference') {
@@ -130,7 +130,7 @@ function add_other_fields($bundle, $entity_type, array $labels, $machine_names, 
       $settings_create = ['target_type' => 'taxonomy_term'];
       $settings_config = ['handler' => $handler, 'handler_settings' => $handler_settings];
     }
-    elseif ($field_types[$i] == 'file') {
+    elseif ($field_types[$i] == 'file' && $format_tmp_array[$i] == 'audio') {
       $handler = 'default';
       $handler_settings = [];
       $settings_create = [];
@@ -141,6 +141,18 @@ function add_other_fields($bundle, $entity_type, array $labels, $machine_names, 
         'file_directory' => $bundle,
       ];
     }
+    elseif ($field_types[$i] == 'file' && $format_tmp_array[$i] == 'video') {
+      $handler = 'default';
+      $handler_settings = [];
+      $settings_create = [];
+      $settings_config = [
+        'handler' => $handler,
+        'handler_settings' => $handler_settings,
+        'file_extensions' => 'mp4',
+        'file_directory' => $bundle,
+      ];
+    }
+
     else {
       $handler = 'default';
       $handler_settings = [];
@@ -494,7 +506,8 @@ function _add_source_info(array $params, $textid) {
   }
 
   // print_r($textname);print_r($field_name);print_r($machine_names);exit;
-  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $cardinality);
+  // pass the $format_tmp_array in the function.
+  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $format_tmp_array, $cardinality);
   return TRUE;
 }
 

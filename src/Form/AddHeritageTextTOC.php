@@ -103,7 +103,7 @@ class AddHeritageTextTOC extends FormBase {
       $form['textinfo']['title'] = [
         '#type' => 'item',
          // '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
-         '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
+        '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
       ];
       $form['textinfo']['levels'] = [
         '#type' => 'item',
@@ -289,8 +289,12 @@ class AddHeritageTextTOC extends FormBase {
       $labels = ['Positional Index', 'Original Content'];
       $machine_names = ['field_positional_index', 'field_original_content'];
       $types = ['entity_reference', 'boolean'];
+      // No need to select format here because format of type,
+      // Audio,video etc. is handled by source nodes.
+      // Also types are not set as files here.
+      $format_tmp_array = [];
       $cardinality = [-1];
-      $field_status = add_other_fields($content_type->id(), 'node', $labels, $machine_names, $types, $cardinality);
+      $field_status = add_other_fields($content_type->id(), 'node', $labels, $machine_names, $types, $format_tmp_array, $cardinality);
       drupal_set_message($this->t("Heritage Text Schema stored successfully. Add more inforation on the TOC structure"));
     }
     elseif ($first_time == 0) {
@@ -306,7 +310,7 @@ class AddHeritageTextTOC extends FormBase {
         $numLevels = $form_state->getValue($level_labels[0]);
         $parents = array_keys($numLevels);
         for ($i = 0; $i < count($parents); $i++) {
-          $getTermDetails = $this->getDetails($numLevels[$parents[$i]], $level_labels,1, $parents[$i]);
+          $getTermDetails = $this->getDetails($numLevels[$parents[$i]], $level_labels, 1, $parents[$i]);
           // print("<pre>");print_r($getTermDetails);exit;
           for ($j = 0; $j < count($getTermDetails); $j++) {
             $this->createTermsBatch($getTermDetails[$j]['label'], $getTermDetails[$j]['value'], $vid, $getTermDetails[$j]['parent']);
@@ -410,7 +414,7 @@ class AddHeritageTextTOC extends FormBase {
         'create_taxonomy_terms_batch',
       [
         $i, $vid, $term_name, $parent,
-        $this->t('(Operation @operation)', ['@operation' => $i]), 
+        $this->t('(Operation @operation)', ['@operation' => $i]),
       ],
       ];
     }
@@ -437,7 +441,7 @@ class AddHeritageTextTOC extends FormBase {
    * @param int $currentDepth
    *   Depth of the array.
    */
-  public function getDetails(array $levels, $label_levels,$currentDepth = 1, $parent, array $result = []) {
+  public function getDetails(array $levels, $label_levels, $currentDepth = 1, $parent, array $result = []) {
     $index = count($result);
     $parents = array_keys($levels);
     for ($j = 0; $j < count($parents); $j++) {
