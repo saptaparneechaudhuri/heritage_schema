@@ -84,7 +84,7 @@ class SourceNode extends BlockBase implements ContainerFactoryPluginInterface {
     // $path = \Drupal::request()->getpathInfo();
     // use dependency injection to find path
     $path = $this->currPath->getPath();
-    print_r($path);
+    //print_r($path);
     $arg = explode('/', $path);
     $textId = $arg[2];
     // $url = Url::fromRoute('heritage_schema.addsource', array('node' => $textId), array('attributes' => $attributes));

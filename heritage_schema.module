@@ -27,7 +27,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // print_r($form_id);
-  // echo "</br>";.
+  // echo "</br>";
   if ($form_id == 'node_heritage_text_form') {
     $form['field_machine_name']['#access'] = FALSE;
     $form['field_levels']['#access'] = FALSE;
@@ -96,12 +96,83 @@ function heritage_schema_node_insert(NodeInterface $node) {
       'format' => [$node->field_format->value],
       'type' => $node->field_type->value,
     ];
+    //$node->field_heritge_text_id['target_id'] = $_GET["textid"];
 
     _add_source_info($params, $_GET["textid"]);
 
   }
 
 }
+
+function heritage_schema_entity_update(Drupal\Core\Entity\EntityInterface $entity) {
+  
+   if($entity->getEntityTypeId() == 'node' && $entity->bundle() == 'source_node') {
+ //  if($entity->getType() == 'source_node')  { 
+    $params = [
+     // 'source_nodeId' => $node->id(),
+      'title' => $entity->title->value,
+      'language' => $entity->field_language->target_id,
+      'author' => $entity->field_author_name->target_id,
+      'format' => [$entity->field_format->value],
+      'type' => $entity->field_type->value,
+    ];
+
+  $machine_names = []; $types = [];$cardinality = [];
+  $format = '';
+  $format_tmp_array = $params['format'];
+  for ($i = 0; $i < count($format_tmp_array); $i++) {
+    if ($i == 0) {
+      $format = $format_tmp_array[$i];
+    }
+    else {
+      $format = $format . ',' . $format_tmp_array[$i];
+    }
+  }
+  $old_source_info = db_query("SELECT * FROM `heritage_source_info` WHERE id = :sourceid", [':sourceid' => $entity->id()])->fetchAll();
+  $textid = $old_source_info[0]->text_id;
+  $node = Node::load($textid);
+
+
+  
+  // Update source node structure in database.
+
+
+   db_update('heritage_source_info')
+    ->fields([
+      'title' => $params['title'],
+      'language' => $params['language'],
+      'author' => $params['author'],
+      'format' => $format,
+      'type' => $params['type'],
+  ])
+    ->condition('id', $entity
+    ->id())
+    ->execute();
+
+    $textname = $node->field_machine_name->value;
+    $field_name = 'field_' . $textname . '_' . $entity->id();
+    for ($i = 0; $i < count($format_tmp_array); $i++) {
+    $machine_names[] = $field_name . '_' . strtolower($format_tmp_array[$i]);
+    if ($format_tmp_array[$i] == 'text') {
+      $types[] = 'text_long';
+      $labels[] = $params['title'];
+      $cardinality[] = 1;
+    }
+    if ($format_tmp_array[$i] == 'audio') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+    if ($format_tmp_array[$i] == 'video') {
+      $types[] = 'file';
+      $labels[] = $format_tmp_array[$i] . ' of ' . $params['title'];
+      $cardinality[] = -1;
+    }
+  }
+  
+  }
+}
+
 
 /**
  * Delete test source.
@@ -247,7 +318,8 @@ function add_vocabulary($title, $machineName) {
     ];
     $types = ['integer', 'text', 'integer', 'text'];
     $cardinality = [1, 1, 1, 1];
-    $field_status = add_other_fields($vocabulary->id(), 'taxonomy_term', $labels, $machine_names, $types, $cardinality);
+    $format_tmp_array = [];
+    $field_status = add_other_fields($vocabulary->id(), 'taxonomy_term', $labels, $machine_names, $types, $format_tmp_array, $cardinality);
   }
   $message = t(
         "Vocabulary @a added successfully",
@@ -367,7 +439,7 @@ function create_content_type($title, $machineName) {
     'display_submitted' => FALSE,
   ]);
   $content_type->save();
-  node_add_body_field($content_type);
+  ($content_type);
   return $content_type;
 }
 
@@ -577,7 +649,7 @@ function _update_source_info(array $params, $sourceid) {
     }
   }
   // print_r($textname);print_r($field_name);print_r($machine_names);exit;
-  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $cardinality);
+  $field_status = add_other_fields($textname, 'node', $labels, $machine_names, $types, $format_tmp_array, $cardinality);
   return TRUE;
 }
 
