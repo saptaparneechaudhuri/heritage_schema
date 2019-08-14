@@ -74,7 +74,7 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
 
 /**
  * @file
- * Implements hook functions. * .
+ * Implements hook functions. 
  */
 
 /**
@@ -85,7 +85,12 @@ function heritage_schema_node_presave(EntityInterface $entity) {
   if ($entity->getEntityTypeId() == 'node' && $entity->bundle() == 'source_node') {
     $text_node = $_GET["textid"];
     // print_r($text_node);exit;
-    $entity->field_heritage_text_id->target_id = $text_node;
+    // Hook_entity_presave gets called before the entity is saved
+    // And also before you save the edits
+    if (isset($text_node)) {
+      $entity->field_heritage_text_id->target_id = $text_node;
+
+    }
 
   }
 
@@ -123,7 +128,7 @@ function heritage_schema_node_insert(NodeInterface $node) {
 function heritage_schema_entity_update(EntityInterface $entity) {
 
   if ($entity->getEntityTypeId() == 'node' && $entity->bundle() == 'source_node') {
-    // if($entity->getType() == 'source_node')  {.
+
     $params = [
     // 'source_nodeId' => $node->id(),
       'title' => $entity->title->value,
