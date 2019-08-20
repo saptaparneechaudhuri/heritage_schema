@@ -231,7 +231,7 @@ function heritage_schema_entity_delete(EntityInterface $entity) {
  * @param array $field_types
  *   Array of Field Types to be added.
  */
-function add_other_fields($bundle, $entity_type, array $labels, $machine_names, array $field_types, $format_tmp_array, $cardinality) {
+function add_other_fields($bundle, $entity_type, array $labels, $machine_names, array $field_types, array $format_tmp_array, array $cardinality) {
   for ($i = 0; $i < count($field_types); $i++) {
     $fieldname = strtolower($machine_names[$i]);
     if ($field_types[$i] == 'entity_reference') {

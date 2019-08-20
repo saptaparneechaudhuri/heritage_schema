@@ -293,7 +293,7 @@ class AddHeritageTextTOC extends FormBase {
       // Audio,video etc. is handled by source nodes.
       // Also types are not set as files here.
       $format_tmp_array = [];
-      $cardinality = [-1];
+      $cardinality = [-1, 1];
       $field_status = add_other_fields($content_type->id(), 'node', $labels, $machine_names, $types, $format_tmp_array, $cardinality);
       drupal_set_message($this->t("Heritage Text Schema stored successfully. Add more inforation on the TOC structure"));
     }
