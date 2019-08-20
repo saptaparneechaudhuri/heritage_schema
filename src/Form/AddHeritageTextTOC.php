@@ -12,14 +12,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Path\CurrentPathStack;
 
 /**
+ * @file
  * Providess a form to add heritage text TOC.
+ */
+
+/**
+ * Adds the Chapters and Slokas.
  */
 class AddHeritageTextTOC extends FormBase {
 
   /**
    * The entity type manager.
    *
-   * @var entityTypeManager\Drupal\Core\Entity\EntityTypeManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
 
   protected $entityTypeManager;
@@ -27,7 +32,7 @@ class AddHeritageTextTOC extends FormBase {
   /**
    * The link generator service.
    *
-   * @var pathLink\Drupal\Core\Utility\LinkGeneratorInterface
+   * @var \Drupal\Core\Utility\LinkGeneratorInterface
    */
 
 
@@ -57,12 +62,11 @@ class AddHeritageTextTOC extends FormBase {
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
     return new static(
-      // Load the service required to construct this class.
-      $container->get('entity_type.manager'),
-      $container->get('link_generator'),
-      $container->get('path.current')
-
-    );
+          // Load the service required to construct this class.
+          $container->get('entity_type.manager'),
+          $container->get('link_generator'),
+          $container->get('path.current')
+      );
   }
 
   /**
@@ -102,7 +106,7 @@ class AddHeritageTextTOC extends FormBase {
       ];
       $form['textinfo']['title'] = [
         '#type' => 'item',
-         // '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
+        // '#markup' => $this->t('Heritage Text Name: ' . $node_info->title->value .'<small><i> (' . $node_info->field_machine_name->value . ')</i></small>'),
         '#markup' => $this->t('Heritage Text Name: @node_info_title <small><i> ( @node_info_machine_name ) </i></small>', ['@node_info_title' => $node_info->title->value, '@node_info_machine_name' => $node_info->field_machine_name->value]),
       ];
       $form['textinfo']['levels'] = [
@@ -119,9 +123,11 @@ class AddHeritageTextTOC extends FormBase {
         'class' => ['use-ajax'],
         'data-dialog-type' => 'dialog',
         'data-dialog-renderer' => 'off_canvas',
-        'data-dialog-options' => Json::encode([
-          'width' => 700,
-        ]),
+        'data-dialog-options' => Json::encode(
+            [
+              'width' => 700,
+            ]
+        ),
       ];
 
       // Get the text id from node.
@@ -133,15 +139,18 @@ class AddHeritageTextTOC extends FormBase {
       // Text node id.
       $textId = $arg[2];
       $url = Url::fromRoute('node.add', ['node_type' => 'source_node']);
-      $url->setOption('query', [
-        'textid' => $textId,
-      ]);
+      $url->setOption(
+            'query', [
+              'textid' => $textId,
+            ]
+        );
       // $source_node_link = \Drupal::l(t('Add a Source Node'), $url);
       $source_node_link = $this->pathLink->generate('Add a Source Node', $url);
 
       if ($topLevelTermsCount == 0) {
         $form['level1num'] = [
           '#type' => 'number',
+        // Enter total number of chapters.
           '#title' => $this->t("Enter total number of @level1", ['@level1' => $level_labels[0] . 's']),
           '#default_value' => $topLevelTermsCount,
         ];
@@ -166,16 +175,32 @@ class AddHeritageTextTOC extends FormBase {
           '#type' => 'hidden',
           '#markup' => $topLevelTermsCount,
         ];
-        $form['text_structure'][$level_labels[0]] = [
-          '#type' => 'table',
-          '#caption' => $this->t('Heritage Text Structure'),
-          '#header' => [$level_labels[0], "Sub Levels", 'Actions'],
-        ];
+        // If 2 level_labels are selected i.e both Chapter and Sloka.
+        if (count($level_labels) > 1) {
+          $form['text_structure'][$level_labels[0]] = [
+            '#type' => 'table',
+            '#caption' => $this->t('Heritage Text Structure'),
+            '#header' => [$level_labels[0], "Sub Levels", 'Actions'],
+          ];
+        }
+
+        // If only one level_label is selected, i.e just Chapter.
+        else {
+          $form['text_structure'][$level_labels[0]] = [
+            '#type' => 'table',
+            '#caption' => $this->t('Heritage Text Structure'),
+            '#header' => [$level_labels[0], 'Actions'],
+          ];
+
+        }
         for ($i = 0; $i < $topLevelTermsCount; $i++) {
           $levelNum = 0;
           $parent = $topLevelTerms[$i]->tid;
           $form['text_structure'][$level_labels[0]][$parent][$level_labels[0]]['#markup'] = $topLevelTerms[$i]->name;
-          $form['text_structure'][$level_labels[0]][$parent][$level_labels[1]] = $this->getFormStructure($node_info->field_machine_name->value, $parent, $level_labels, $levelNum + 1, $form);
+          // Setting the sublevels here if and only if both Chapter and Sloka exists.
+          if (count($level_labels) > 1) {
+            $form['text_structure'][$level_labels[0]][$parent][$level_labels[1]] = $this->getFormStructure($node_info->field_machine_name->value, $parent, $level_labels, $levelNum + 1, $form);
+          }
           $form['text_structure'][$level_labels[0]][$parent]['Actions'] = [
             '#type' => 'link',
             '#title' => $this->t('Edit'),
@@ -183,9 +208,11 @@ class AddHeritageTextTOC extends FormBase {
             '#attributes' => [
               'class' => ['use-ajax'],
               'data-dialog-type' => 'modal',
-              'data-dialog-options' => Json::encode([
-                'width' => 700,
-              ]),
+              'data-dialog-options' => Json::encode(
+            [
+              'width' => 700,
+            ]
+              ),
             ],
           ];
         }
@@ -228,6 +255,7 @@ class AddHeritageTextTOC extends FormBase {
         '#prefix' => '<div id="levels-labels">',
         '#suffix' => '</div>',
       ];
+      // $num_levels sets the number of levels that we selected
       if ($num_levels != 0) {
         $form['levels_labels']['levels_labels_fields'] = [
           '#type' => 'fieldset',
@@ -372,9 +400,11 @@ class AddHeritageTextTOC extends FormBase {
           '#attributes' => [
             'class' => ['use-ajax'],
             'data-dialog-type' => 'modal',
-            'data-dialog-options' => Json::encode([
-              'width' => 700,
-            ]),
+            'data-dialog-options' => Json::encode(
+              [
+                'width' => 700,
+              ]
+            ),
           ],
         ];
       }
@@ -412,10 +442,10 @@ class AddHeritageTextTOC extends FormBase {
       // - An array of arguments to that function.
       $operations[] = [
         'create_taxonomy_terms_batch',
-      [
-        $i, $vid, $term_name, $parent,
-        $this->t('(Operation @operation)', ['@operation' => $i]),
-      ],
+        [
+          $i, $vid, $term_name, $parent,
+          $this->t('(Operation @operation)', ['@operation' => $i]),
+        ],
       ];
     }
     $batch = [
@@ -434,12 +464,12 @@ class AddHeritageTextTOC extends FormBase {
    *   An array of the form values.
    * @param string $label_levels
    *   Name of the level labels.
+   * @param int $currentDepth
+   *   Depth of the array.
    * @param int $parent
    *   Parent id of the term.
    * @param array $result
    *   An array containing parent, label and value.
-   * @param int $currentDepth
-   *   Depth of the array.
    */
   public function getDetails(array $levels, $label_levels, $currentDepth = 1, $parent, array $result = []) {
     $index = count($result);
