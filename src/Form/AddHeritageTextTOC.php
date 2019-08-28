@@ -97,6 +97,7 @@ class AddHeritageTextTOC extends FormBase {
       $level_labels = explode(',', $node_info->field_level_labels->value);
       $topLevelTerms = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE bundle=:bundle AND parent_target_id = 0)", [':bundle' => $node_info->field_machine_name->value])->fetchAll();
       $topLevelTermsCount = count($topLevelTerms);
+
       if ($topLevelTermsCount == 0) {
         $topLevelTermsCount = '';
       }

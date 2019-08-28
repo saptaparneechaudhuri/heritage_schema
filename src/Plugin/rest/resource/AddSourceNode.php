@@ -13,8 +13,8 @@ use Drupal\rest\ResourceResponse;
  *   id = "add_source_info",
  *   label = @Translation("Add Sources to a Text"),
  *   uri_paths = {
- *     "canonical" = "/api/{textname}/add/sources",
-	   "https://www.drupal.org/link-relations/create" = "/api/{textname}/add/sources"
+ *     "canonical" = "/api/{textname}/add/source_node",
+	   "https://www.drupal.org/link-relations/create" = "/api/{textname}/add/source_node"
  *   }
  * )
  */
@@ -39,7 +39,7 @@ class AddSourceNode extends ResourceBase {
 			if(count($arg) == 0){
 				$message = [
 					'success' => 0,
-					'message' => 'required parameters missing'
+					'message' => 'required parameters missing(count($arg) == 0)'
 				];
 				$statuscode = 400;
 			}
@@ -48,30 +48,35 @@ class AddSourceNode extends ResourceBase {
 					if(!isset($arg[$i]['title']) || !isset($arg[$i]['language']) || !isset($arg[$i]['author']) || !isset($arg[$i]['format']) || !isset($arg[$i]['type']) ){
 						$message = [
 							'success' => 0,
-							'message' => 'required parameters missing'
+							'message' => 'required parameters missing(incorrect arguments)'
 						];
 						$statuscode = 400;
 						break;
 					}
 					else{
-						if($arg[$i]['type'] != 'Translation' && $arg[$i]['type'] != 'Commentary' && $arg[$i]['type'] != 'Moolam'){
+						if($arg[$i]['type'] != 'translation' && $arg[$i]['type'] != 'commentary' && $arg[$i]['type'] != 'moolam'){
 							$message = [
 								'success' => 0,
-								'message' => 'required parameters missing'
+								'message' => 'required parameters missing(incorrect type)'
 							];
 							$statuscode = 400;
 							break;
 						}
 						else {
 							for($j=0; $j<count($arg[$i]['format']); $j++){
-								if($arg[$i]['format'][$j] != 'Text' && $arg[$i]['format'][$j] != 'Audio' && $arg[$i]['format'][$j] != 'Video'){
+								if($arg[$i]['format'][$j] != 'text' && $arg[$i]['format'][$j] != 'audio' && $arg[$i]['format'][$j] != 'video'){
 									$in_correct = 1;
 								}
+							
+
 							}
+
+
+
 							if($in_correct == 1){
 								$message = [
 									'success' => 0,
-									'message' => 'required parameters missing'
+									'message' => 'required parameters missing(incorrect format)'
 								];
 								$statuscode = 400;
 								break;

@@ -130,6 +130,7 @@ function heritage_schema_node_insert(NodeInterface $node) {
       'author' => $node->field_author_name->target_id,
       'format' => [$node->field_format->value],
       'type' => $node->field_type->value,
+      'parent_id' => $node->field_parent_source->target_id,
     ];
 
     _add_source_info($params, $_GET["textid"]);
@@ -152,6 +153,8 @@ function heritage_schema_entity_update(EntityInterface $entity) {
       'author' => $entity->field_author_name->target_id,
       'format' => [$entity->field_format->value],
       'type' => $entity->field_type->value,
+      'parent_id' => $entity->field_parent_source->target_id,
+
     ];
 
     $machine_names = []; $types = [];$cardinality = [];
@@ -177,6 +180,8 @@ function heritage_schema_entity_update(EntityInterface $entity) {
         'author' => $params['author'],
         'format' => $format,
         'type' => $params['type'],
+        'parent_id' => $params['parent_id'],
+
       ])
       ->condition('id', $entity
         ->id())
@@ -592,6 +597,7 @@ function _add_source_info(array $params, $textid) {
       'author' => $params['author'],
       'format' => $format,
       'type' => $params['type'],
+      'parent_id' => $params['parent_id'],
                                 // Added the source node id.
     ])
     ->execute();
@@ -657,6 +663,7 @@ function _update_source_info(array $params, $sourceid) {
       'author' => $params['author'],
       'format' => $format,
       'type' => $params['type'],
+      'parent_id' => $params['parent_id'],
     ])
     ->condition('id', $sourceid, '=')
     ->execute();

@@ -1,136 +1,150 @@
 <?php
+
 /**
+ * @file
  * Implements hook_schema().
  *
  * Defines the database tables used by this module.
  *
  * @see hook_schema()
- *
  */
 
-function heritage_schema_schema(){
-	$schema['heritage_text_structure'] = [
-		'description' => 'Stores schema of each heritage text available in the website',
-		'fields' => [
-			'text_id' => [
-				'type' => 'serial',
-				'not null' => TRUE,
-				'description' => 'Primary Key: Unique heritage text ID.',
-			],
-			'title' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Title of the heritage text.',
-			],
-			'machine_name' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Unique Machine Name of the heritage text.',
-			],
-			'levels' => [
-				'type' => 'int',
-				'not null' => TRUE,
-				'default' => 0,
-				'description' => "No.of levels in the heritage text",
-			],
-			'level_labels' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Comma Seperated values of level labels for the heritage text',
-			],
-		],
-		'primary key' => ['text_id']
-	];
+/**
+ *
+ */
+function heritage_schema_schema() {
+  $schema['heritage_text_structure'] = [
+    'description' => 'Stores schema of each heritage text available in the website',
+    'fields' => [
+      'text_id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique heritage text ID.',
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Title of the heritage text.',
+      ],
+      'machine_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Unique Machine Name of the heritage text.',
+      ],
+      'levels' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "No.of levels in the heritage text",
+      ],
+      'level_labels' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Comma Seperated values of level labels for the heritage text',
+      ],
+    ],
+    'primary key' => ['text_id'],
+  ];
 
-	$schema['heritage_source_info'] = [
-		'description' => 'Stores source nodes available for each heritage text',
-		'fields' => [
-			'id' => [
-				//'type' => 'serial',
-                                'type' => 'int',
-				'not null' => TRUE,
-				'description' => 'Primary Key: Unique ID.',
-			],
-			'text_id' => [
-				'type' => 'int',
-				'not null' => TRUE,
-				'description' => "ID of the heritage text",
-			],
-			'title' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Name of the source.',
-			],
-			'language' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Language in which the source node is avaialble',
-			],
-			'author' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Author of the source',
-			],
-			'format' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'In which format the data is available',
-			],
-			'type' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Whether it is a commentory, translation or moolam',
-			]
-		],
-		'primary key' => ['id']
-	];
+  $schema['heritage_source_info'] = [
+    'description' => 'Stores source nodes available for each heritage text',
+    'fields' => [
+      'id' => [
+                // 'type' => 'serial',
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique ID.',
+      ],
+      'text_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => "ID of the heritage text",
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Name of the source.',
+      ],
+      'language' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Language in which the source node is avaialble',
+      ],
+      'author' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Author of the source',
+      ],
+      'format' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'In which format the data is available',
+      ],
+      'type' =>
+            [
+              'type' => 'varchar',
+              'length' => 255,
+              'not null' => TRUE,
+              'default' => '',
+              'description' => 'Whether it is a commentory, translation or moolam',
+            ]
 
-	$schema['heritage_field_meta_data'] = [
-		'description' => 'Stores unique ID of each source information entered in the text along with the metadata',
-		'fields' => [
-			'id' => [
-				'type' => 'serial',
-				'not null' => TRUE,
-				'description' => 'Primary Key: Unique ID.',
-			],
-			'nid' => [
-				'type' => 'int',
-				'not null' => TRUE,
-				'description' => "Node id of the node to which it is associated to",
-			],
-			'field_name' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Name of the source.',
-			],
-			'language' => [
-				'type' => 'varchar',
-				'length' => 255,
-				'not null' => TRUE,
-				'default' => '',
-				'description' => 'Language in which the source node is stored',
-			]
-		],
-		'primary key' => ['id']
-	];
+      'parent_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => 'ID of the parent',
+      ],
+    ],
 
-	return $schema;
+    'primary key' => ['id'],
+  ];
+
+  $schema['heritage_field_meta_data'] = [
+    'description' => 'Stores unique ID of each source information entered in the text along with the metadata',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique ID.',
+      ],
+      'nid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => "Node id of the node to which it is associated to",
+      ],
+      'field_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Name of the source.',
+      ],
+      'language' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Language in which the source node is stored',
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  return $schema;
 }

@@ -13,8 +13,8 @@ use Drupal\rest\ResourceResponse;
  *   id = "edit_source_info",
  *   label = @Translation("Edit Sources of a Text"),
  *   uri_paths = {
- *     "canonical" = "/api/{textname}/edit/sources/{sourceid}",
-	   "https://www.drupal.org/link-relations/create" = "/api/{textname}/edit/sources/{sourceid}"
+ *     "canonical" = "/api/{textname}/edit/source_node/{sourceid}",
+	   "https://www.drupal.org/link-relations/create" = "/api/{textname}/edit/source_node/{sourceid}"
  *   }
  * )
  */
@@ -57,7 +57,7 @@ class EditSourceNode extends ResourceBase {
 						$statuscode = 400;
 					}
 					else{
-						if($arg['type'] != 'Translation' && $arg['type'] != 'Commentary' && $arg['type'] != 'Moolam'){
+						if($arg['type'] != 'translation' && $arg['type'] != 'commentary' && $arg['type'] != 'moolam'){
 							$message = [
 								'success' => 0,
 								'message' => 'required parameters missing'
@@ -66,7 +66,7 @@ class EditSourceNode extends ResourceBase {
 						}
 						else {
 							for($j=0; $j<count($arg['format']); $j++){
-								if($arg['format'][$j] != 'Text' && $arg['format'][$j] != 'Audio' && $arg['format'][$j] != 'Video'){
+								if($arg['format'][$j] != 'text' && $arg['format'][$j] != 'audio' && $arg['format'][$j] != 'video'){
 									$in_correct = 1;
 								}
 							}
