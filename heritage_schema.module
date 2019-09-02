@@ -132,8 +132,11 @@ function heritage_schema_node_insert(NodeInterface $node) {
       'type' => $node->field_type->value,
       'parent_id' => $node->field_parent_source->target_id,
     ];
+    $text_node = $_GET["textid"];
+    if (isset($text_node)) {
 
     _add_source_info($params, $_GET["textid"]);
+  }
 
   }
 

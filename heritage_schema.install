@@ -101,7 +101,7 @@ function heritage_schema_schema() {
               'not null' => TRUE,
               'default' => '',
               'description' => 'Whether it is a commentory, translation or moolam',
-            ]
+            ],
 
       'parent_id' => [
         'type' => 'varchar',
