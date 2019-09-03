@@ -4,7 +4,6 @@ namespace Drupal\heritage_schema\Plugin\rest\resource;
 
 use Drupal\rest\ModifiedResourceResponse;
 use Drupal\rest\Plugin\ResourceBase;
-use Drupal\taxonomy\Entity\Term;
 
 /**
  * Provides a resource to add sources to a text.
@@ -151,88 +150,5 @@ class AddSourceNode extends ResourceBase {
     }
     return new ModifiedResourceResponse($message, $statuscode);
   }
-
-}
-
-/**
- * @param string $vid
- *   Vocabulary name of the term.
- * @param string $term
- *   Name of the taxonomy term that needs to be checked.
- */
-function check_taxonomy($vid, $term_name) {
-
-  // If ($terms = taxonomy_term_load_multiple_by_name($term_name, $vid)) {
-  //   $term_name = reset($terms);
-  // }
-  // else {
-  //   $term_name = Term::create([
-  //     'name' => $term_name,
-  //     'vid' => $vid,
-  //   ]);
-  //   $term_name->save();
-  // }
-  $properties = [];
-  if (!empty($term_name)) {
-    $properties['name'] = $term_name;
-  }
-  if (!empty($vid)) {
-    $properties['vid'] = $vid;
-  }
-  $terms = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($properties);
-  if ($terms) {
-    $term_name = reset($terms);
-
-  }
-  else {
-    $term_name = Term::create([
-      'name' => $term_name,
-      'vid' => $vid,
-    ]);
-    $term_name->save();
-  }
-
-  return $term_name->id();
-
-}
-
-/**
- * @param string $title
- *   Title of the content type.
- * @param string $format
- *   Format of the content.
- * @param string $type
- *   Type of content.
- * @param int $language
- *   ID of the language.
- * @param int $author
- *   ID of the author.
- * @param int $textid
- *   ID of the heritage text.
- */
-function create_sourceNode($title, $format, $type, $language, $author, $textid) {
-
-  $node = entity_create('node',
-                [
-                  'type' => 'source_node',
-                  'title' => $title,
-
-                  'field_format' => $format,
-                  'field_type' => $type,
-                  'field_language' => [
-                    'target_id' => $language,
-                  ],
-                  'field_author_name' => [
-                    'target_id' => $author,
-                  ],
-
-                  'field_heritage_text_id' => $textid,
-
-                ]
-
-                );
-  $node->save();
-
-  return $node->id();
 
 }
