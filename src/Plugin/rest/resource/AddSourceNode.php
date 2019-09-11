@@ -111,21 +111,12 @@ class AddSourceNode extends ResourceBase {
                 $vid = 'authors';
                 $term_name = $arg[$i]['author'];
 
-                // If ($terms = taxonomy_term_load_multiple_by_name($term, $vid)) {
-                //                    $term = reset($terms);
-                // }
-                //  else {
-                //               $term = Term::create([
-                //               'name' => $term,
-                //               'vid' => $vid,
-                //               ]);
-                //         $term->save();
-                //   }
-                // }
-                // }
-                // $arg[$i]['author'] = $term->id();
-                // function returns term->id()
+                
                 $arg[$i]['author'] = check_taxonomy($vid, $term_name);
+
+                
+
+                
 
                 $arg[$i]['source_nodeId'] = create_sourceNode($arg[$i]['title'], $arg[$i]['format'], $arg[$i]['type'], $arg[$i]['language'], $arg[$i]['author'], $textid);
 
@@ -135,6 +126,7 @@ class AddSourceNode extends ResourceBase {
                   'message' => 'source added',
                 ];
                 $statuscode = 200;
+              
               }
             }
           }
@@ -152,3 +144,5 @@ class AddSourceNode extends ResourceBase {
   }
 
 }
+
+
