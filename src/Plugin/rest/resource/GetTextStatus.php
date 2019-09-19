@@ -7,7 +7,9 @@ use Drupal\rest\Plugin\ResourceBase;
 use Drupal\node\Entity\Node;
 use Drupal\Core\Language\LanguageInterface;
 
-
+/**
+ *
+ */
 class GetTextStatus extends ResourceBase {
 
   /**
@@ -36,8 +38,6 @@ class GetTextStatus extends ResourceBase {
       $text_status['id'] = $textid;
       $text_status['machine_name'] = $textname;
 
-      // Query to find the title etc
-      // $text_title = db_query("SELECT title FROM `node_field_data` WHERE nid = :textid",[':textid' => $textid])->fetchField();
       // Load the node of the given textid.
       $node = Node::load($textid);
 
@@ -75,16 +75,8 @@ class GetTextStatus extends ResourceBase {
           $content_present_text = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
 
           // Query to find out the language name of the source.
-          // $source_language = db_query("SELECT name FROM `taxonomy_term_field_data` WHERE tid = :langid", [':langid' => $available_sources[$i]->language])->fetchField();
           $source_language = db_query("SELECT DISTINCT(langcode) FROM " . $table_name . " WHERE  bundle = :textname", [':textname' => $textname])->fetchAll();
 
-          // Foreach ($languages as $language) {
-          //   if ($source_language == $language->getName()) {
-          //     $langcode = $language->getId();
-          //   }
-          // }
-          // Query to find out the total content present for a given langcode.
-          // $content_present_lang = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchField();
           $sourcelang = [];
 
           foreach ($source_language as $key => $lang) {
@@ -105,7 +97,6 @@ class GetTextStatus extends ResourceBase {
 
           }
 
-          // $content_present_lang = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $source_language])->fetchField();
           // Query to find out the name of the author for a given source.
           $source_author = db_query("SELECT name FROM `taxonomy_term_field_data` WHERE tid = :authid", [':authid' => $available_sources[$i]->author])->fetchField();
 
@@ -115,10 +106,7 @@ class GetTextStatus extends ResourceBase {
           $source_info['title'] = $available_sources[$i]->title;
           $source_info['author'] = $source_author;
           $source_info['total_number_of_content_present'] = $content_present_text;
-          // $source_info['language'] = [
-          //   'name' => $source_language,
-          //   'total_content_present' => $content_present_lang,
-          // ];
+
           $source_info['language'] = $sourcelang;
           $source_info['format'] = $available_sources[$i]->format;
           $source_info['type'] = $available_sources[$i]->type;
