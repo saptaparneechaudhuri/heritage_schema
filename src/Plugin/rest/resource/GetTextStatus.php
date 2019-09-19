@@ -8,7 +8,15 @@ use Drupal\node\Entity\Node;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
+ * Provides a resource to get status of a text.
  *
+ * @RestResource(
+ *   id = "get_text_status",
+ *   label = @Translation("Get the status of Text"),
+ *   uri_paths = {
+ *     "canonical" = "/api/text/{textname}/status",
+ *   }
+ * )
  */
 class GetTextStatus extends ResourceBase {
 
