@@ -54,9 +54,7 @@ class GetSourceStatus extends ResourceBase {
       // Load the source node.
       $node = Node::load($sourceid);
 
-      // Query to find out the language of a source
-      // $source_language = db_query("SELECT name FROM `taxonomy_term_field_data` WHERE tid = :langid",[':langid' => $node->field_language>target_id])->fetchField();
-      // Query to find out the author of a source.
+      // Query to find out the language of a source.
       $source_author = db_query("SELECT name FROM `taxonomy_term_field_data` WHERE tid = :authid", [':authid' => $node->field_author_name->target_id])->fetchField();
 
       // Query to find the biography of the author.
@@ -103,9 +101,6 @@ class GetSourceStatus extends ResourceBase {
       $source_info['script'] = $node->field_scipt->value;
       $source_info['publisher_name'] = $node->field_publisher_name->value;
 
-      // $source_info['heritage_text'] = $node->field_heritage_text_id->target_id;
-      // $source_info['tablename'] = $table_name;
-      // $source_info['total_number_of_content_present'] = $content_present_text;
       $message = $source_info;
       $statuscode = 200;
 

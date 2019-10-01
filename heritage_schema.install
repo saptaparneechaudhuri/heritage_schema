@@ -143,6 +143,12 @@ function heritage_schema_schema() {
         'description' => 'Language in which the source node is stored',
       ],
     ],
+    'metadata' => [
+      'type' => 'longblob',
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'Metadata of the sources',
+    ],
     'primary key' => ['id'],
   ];
 

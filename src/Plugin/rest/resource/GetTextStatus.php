@@ -5,7 +5,6 @@ namespace Drupal\heritage_schema\Plugin\rest\resource;
 use Drupal\rest\ModifiedResourceResponse;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\node\Entity\Node;
-use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Provides a resource to get status of a text.
@@ -79,7 +78,7 @@ class GetTextStatus extends ResourceBase {
           $table_name = 'node__field_' . $textname . '_' . $available_sources[$i]->id . '_' . $available_sources[$i]->format;
 
           // Query to find out about the content present.
-          // PLEASE USE PLACEHOLDERS FOR TABLE_NAME HERE.
+         
           $content_present_text = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
 
           // Query to find out the language name of the source.

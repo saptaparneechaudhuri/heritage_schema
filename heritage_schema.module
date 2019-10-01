@@ -18,7 +18,6 @@ use Drupal\node\NodeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\CloseModalDialogCommand;
-use Drupal\Core\Language\LanguageInterface;
 
 /**
  * @file
@@ -36,22 +35,15 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
   // $str = "1.1";
   // $arg = explode('.',$str);
   // $chapter_name = 'Chapter '.$arg[0];
-  //print_r($chapter_name);exit;
-
-  //  $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
+  // print_r($chapter_name);exit;
+  // $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
   //  $arg2 = "Malayalam";
   //  foreach ($languages as $language) {
   //              if($arg2 == $language->getName()) {
   //                $arg2 = $language->getId();
-                 
-  //              }
+  // }
   //            }
-
-  
-
-  // print_r($arg2);exit;
-
-
+  // print_r($arg2);exit;.
   if ($form_id == 'node_heritage_text_form') {
     $form['field_machine_name']['#access'] = FALSE;
     $form['field_levels']['#access'] = FALSE;
@@ -240,20 +232,12 @@ function heritage_schema_entity_update(EntityInterface $entity) {
 function heritage_schema_entity_delete(EntityInterface $entity) {
 
   // $format = db_query("SELECT format FROM `heritage_source_info` WHERE id = :sourceid AND text_id = :textid", [':sourceid' => $entity->id(),':textid' => 'gita'])->fetchField();
-
   // $field_name = 'field_gita'. '_' . $entity->id() .'_'. $format;
-
-  //FieldStorageConfig::loadByName('node','gita',$field_name)->delete();
-  //FieldConfig::loadByName('node',$field_name)->delete();
-
-   
-
+  // FieldStorageConfig::loadByName('node','gita',$field_name)->delete();
+  // FieldConfig::loadByName('node',$field_name)->delete();
   db_delete('heritage_source_info')
     ->condition('id', $entity->id())
     ->execute();
-
-  
-
 
 }
 
@@ -836,23 +820,23 @@ function create_sourceNode($title, $format, $type, $language, $author, $textid) 
 
 }
 
-function add_source_content($textid,$positional_index,$language,$field_name,$field_content) {
+/**
+ *
+ */
+function add_source_content($textid, $positional_index, $language, $field_name, $field_content) {
 
   $node = Node::load($textid);
-                // $node_storage = $this->entityTypeManager->getStorage('node');
-                // $node = $node_storage->load($sourceid);
+  // $node_storage = $this->entityTypeManager->getStorage('node');
+  // $node = $node_storage->load($sourceid);
+  $language_id = db_query('SELECT tid FROM `taxonomy_term_field_data` WHERE name = :language', [':language' => $language])->fetchField();
 
-                 $language_id = db_query('SELECT tid FROM `taxonomy_term_field_data` WHERE name = :language', [':language' => $language])->fetchField();
+  $language = $language_id;
 
-                $language = $language_id;
-                
-                $node->set('field_positional_index', $positional_index);
-                $node->set('field_language', $language);
-                $node->set($field_name,$field_content);
-                
+  $node->set('field_positional_index', $positional_index);
+  $node->set('field_language', $language);
+  $node->set($field_name, $field_content);
 
-                $node->save();
-
+  $node->save();
 
 }
 
