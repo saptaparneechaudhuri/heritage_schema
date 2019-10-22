@@ -85,7 +85,7 @@ class GetSourceStatus extends ResourceBase {
 
       }
 
-      $source_info['id'] = $sourceid;
+      $source_info['id'] = json_decode($sourceid, TRUE);
       $source_info['title'] = $node->title->value;
       $source_info['author_name'] = [
         'name' => $source_author,
@@ -100,6 +100,36 @@ class GetSourceStatus extends ResourceBase {
       $source_info['type'] = $node->field_type->value;
       $source_info['script'] = $node->field_scipt->value;
       $source_info['publisher_name'] = $node->field_publisher_name->value;
+
+      $meta_info = [
+
+        // 'title' => $node->title->value,
+        'alternative_titles' => $node->field_alternative_titles->value,
+
+        'copyright_expiry_year' => $node->field_copyright_expiry_year->value,
+        'copyright_license' => $node->field_copyright_license->value,
+        'copyright_name' => $node->field_copyright_name->target_id,
+        'copyright_year' => $node->field_copyright_name->value,
+        'distribution_allowed' => $node->field_distribution_allowed->value,
+        'download_allowed' => $node->field_download_allowed->value,
+        'edition' => $node->field_edition->value,
+        'foreword' => $node->field_foreword->value,
+
+        'keywords' => $node->field_tags->target_id,
+
+        'preface' => $node->field_preface->value,
+        'prerequisites' => $node->field_prerequisites->value,
+        'published_date' => json_decode($node->field_published_date->value, TRUE),
+
+        'translated_titles' => $node->field_translated_titles->value,
+
+      ];
+
+      $metadata = $_GET['metadata'];
+      if (isset($_GET['metadata']) && $metadata == 1) {
+        $source_info['metadata'] = $meta_info;
+
+      }
 
       $message = $source_info;
       $statuscode = 200;

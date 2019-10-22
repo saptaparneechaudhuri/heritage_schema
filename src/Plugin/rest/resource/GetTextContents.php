@@ -4,8 +4,8 @@ namespace Drupal\heritage_schema\Plugin\rest\resource;
 
 use Drupal\rest\ModifiedResourceResponse;
 use Drupal\rest\Plugin\ResourceBase;
-use Drupal\Core\Language\LanguageInterface;
 use Drupal\node\Entity\Node;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Provides a resource to get status of a text.
@@ -14,7 +14,7 @@ use Drupal\node\Entity\Node;
  *   id = "get_text_contents",
  *   label = @Translation("Get the contents of Text"),
  *   uri_paths = {
- *     "canonical" = "/api/{textname}",
+ *     "canonical" = "/api/{textid}",
  *   }
  * )
  */
@@ -29,109 +29,301 @@ class GetTextContents extends ResourceBase {
    * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    */
-  public function get($textname = NULL) {
+  public function get($textid = NULL) {
 
-    // Get the textid from the textname.
-    $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname", [':textname' => $textname])->fetchField();
+    // Get the textid from textname.
+    // $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname", [':textname' => $textname])->fetchField();
+    $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
 
-    // Set a default langcode if langcode is not given as a parameter in the GET request.
+    // Set the default langcode.
     $langcode = 'dv';
-
-    // Langcode from the GET parameters.
-    if (isset($_GET['language'])) {
-
-      $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
-
-      $requested_language = ucfirst($_GET['language']);
-
-      foreach ($languages as $language) {
-        if ($requested_language == $language->getName()) {
-          $langcode = $language->getId();
-
-        }
-      }
-
-    }
-
     $contents = [];
 
-    // GET the field for that textid.
     if (isset($textid) && $textid > 0) {
+      $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
 
-      $position = $_GET['position'];
+      // If no position parameter is given.
+      if (!isset($_GET['position'])) {
+        // Find all the nodes of type == 'gita' with langcode = 'dv'.
+        $available_texts = db_query("SELECT * FROM `node_field_data` WHERE type = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchAll();
 
-      $term_position = db_query('SELECT entity_id FROM `taxonomy_term__field_position` WHERE field_position_value = :position AND bundle = :bundle', [':position' => $position, ':bundle' => $textname])->fetchField();
+        if (count($available_texts) > 0) {
+          for ($i = 0; $i < count($available_texts); $i++) {
+            $text_info = [];
+            $mool_shloka = [];
 
-      $entityid = db_query('SELECT entity_id FROM `node__field_positional_index` WHERE field_positional_index_target_id = :term_position AND langcode = :langcode', [':term_position' => $term_position, ':langcode' => $langcode])->fetchField();
+            $flag = TRUE;
+            $mool_shloka_flag = TRUE;
+            $other_fields = [];
+            // Load the node.
+            // $node = Node::load($available_texts[$i]->nid);.
+            // if($mool_shloka_flag == TRUE) {
+            //   $mool_shloka['content'] = $node->field_gita_10589_text->value;
+            //   // Collect the metadata for mool shloka.
+            //   $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_gita_10589_text', 'dv');.
+            // $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
+            //   $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+            //   $text_info['title'] = $available_texts[$i]->title;
+            //   $text_info['field_gita_10589_text'] = $mool_shloka;
+            // }.
+            $parameters = $_GET;
+            // If fields are given.
+            if (isset($_GET['language'])) {
 
-      // Make a query for the english node.
-      $entityid_en = db_query('SELECT entity_id FROM `node__field_positional_index` WHERE field_positional_index_target_id = :term_position AND langcode = :langcode', [':term_position' => $term_position, ':langcode' => 'en'])->fetchField();
+              $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
 
-      // Once the entity id for the node with english is found
-      // Load the node.
-      $node = Node::load($entityid_en);
+              $requested_language = ucfirst($_GET['language']);
 
-      // Text node. Loaded to check if field exists
-      $text_node = Node::load($entityid);
+              foreach ($languages as $language) {
+                if ($requested_language == $language->getName()) {
+                  $langcode = $language->getId();
 
-      // Select metadata using entityid as nid.
-      $meta_data = db_query('SELECT metadata FROM `heritage_field_meta_data` WHERE nid = :entityid AND language = :langcode', [':entityid' => $entityid, ':langcode' => $langcode])->fetchField();
-
-      $parameters = $_GET;
-
-      foreach ($parameters as $key => $parameter) {
-        $parameter_info = explode('_', $key);
-
-        if ($parameter_info[0] == 'field') {
-          if (count($parameter_info) >= 3) {
-
-            $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
-
-            $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
-
-            $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
-
-            // Check if the field exists
-            if (isset($text_node->{$field}->value)) {
-
-              // Get the content for the field from table.
-              $content_present = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid, ':langcode' => $langcode])->fetchField();
-
-              $contents['title'] = $position;
-
-              $contents[$field_name] = $content_present;
-              // json_decode converts a string to a json object.
-              $contents['meta_data'] = json_decode($meta_data, TRUE);
-              $contents['field_gita_10605_text'] = $node->field_gita_10605_text->value;
-              $contents['field_gita_10609_text'] = $node->field_gita_10609_text->value;
-              $contents['field_gita_10606_text'] = $node->field_gita_10606_text->value;
-              $contents['field_gita_10612_text'] = $node->field_gita_10612_text->value;
-              $contents['field_gita_10610_text'] = $node->field_gita_10610_text->value;
-              $contents['field_gita_10611_text'] = $node->field_gita_10611_text->value;
-              $contents['field_gita_10608_text'] = $node->field_gita_10608_text->value;
-              $contents['field_gita_10607_text'] = $node->field_gita_10607_text->value;
-
-              $message = $contents;
-              $statuscode = 200;
+                }
+              }
 
             }
-            else {
-              $message = [
-                'success' => 0,
-                'message' => "Field does not exist",
+            foreach ($parameters as $key => $parameter) {
+              $parameter_info = explode('_', $key);
+              if ($parameter_info[0] == 'field') {
 
-              ];
-              $statuscode = 404;
+                if (count($parameter_info) >= 3) {
+                  $mool_shloka_flag = FALSE;
+                  $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+                  $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
+
+                  $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+                  // Query to find the language of the table.
+                  if (doesBundleHaveField('node', 'gita', $field) == TRUE) {
+                    $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
+
+                    if ($table_lang == 'en') {
+                      // For the positional index find the corresponding english node.
+                      $entityid_en = get_entityId($available_texts[$i]->title, $textname, 'en');
+
+                      $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
+                      $other_fields['content'] = $field_content;
+
+                      $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+
+                      $text_info['title'] = $available_texts[$i]->title;
+
+                      // $text_info[$field] = $other_fields;
+                    }
+
+                    else {
+                      // $entityid_dv = get_entityId($available_texts[$i]->title, $textname, 'dv');
+                      $entityid_dv = get_entityId($available_texts[$i]->title, $textname, $langcode);
+
+                      // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
+                      $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
+                      $other_fields['content'] = $field_content;
+
+                      $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+
+                      $text_info['title'] = $available_texts[$i]->title;
+
+                      // $text_info[$field] = $other_fields;
+                    }
+                  }
+                  else {
+                    $flag = FALSE;
+                  }
+                  if ($flag == TRUE) {
+                    $text_info[$field] = $other_fields;
+
+                  }
+                  else {
+                    $message = [
+                      'success' => 0,
+                      'message' => "Field does not exist",
+
+                    ];
+                    $statuscode = 404;
+
+                  }
+
+                  // $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+                  //    $text_info['title'] = $available_texts[$i]->title;
+                  //    $text_info[$field] = $node->{$field}->value;
+                }
+
+              }
+
+            }
+            if ($mool_shloka_flag == TRUE) {
+              // When no parameters are given.
+              $node = Node::load($available_texts[$i]->nid);
+              $mool_shloka['content'] = $node->field_gita_10589_text->value;
+              // Collect the metadata for mool shloka.
+              $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_gita_10589_text', 'dv');
+
+              $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
+              $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+              $text_info['title'] = $available_texts[$i]->title;
+              $text_info['field_gita_10589_text'] = $mool_shloka;
+            }
+
+            $contents[] = $text_info;
+
+          }
+          $message = $contents;
+          $statuscode = 200;
+
+        }
+
+      }
+      else {
+        if (isset($_GET['position'])) {
+          $flag = TRUE;
+          $mool_shloka_flag = TRUE;
+          $position = $_GET['position'];
+
+          if (isset($_GET['language'])) {
+
+            $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
+
+            $requested_language = ucfirst($_GET['language']);
+
+            foreach ($languages as $language) {
+              if ($requested_language == $language->getName()) {
+                $langcode = $language->getId();
+
+              }
             }
 
           }
+
+          // If only position parameter is given, display the mool shloka and.
+          $mool_shloka = [];
+          $other_fields = [];
+
+          // If ($langcode == 'en') {
+          //   // Display  mool shloka for that position.
+          //   $entityid_mool = get_entityId($position, $textname, 'dv');
+          //   $node_mool = Node::load($entityid_mool);
+          //   $mool_shloka['content'] = $node_mool->field_gita_10589_text->value;.
+          // $metadata_mool = collect_metadata($entityid_mool, 'field_gita_10589_text', 'dv');
+          //   $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+          // }
+          // else {
+          //   $entityid = get_entityId($position, $textname, $langcode);
+          //    $node = Node::load($entityid);
+          //   $mool_shloka['content'] = $node->field_gita_10589_text->value;
+          //   $metadata_mool = collect_metadata($entityid, 'field_gita_10589_text', $langcode);
+          //   $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+          // }
+          // $node_info['content'] = $mool_shloka;.
+          $contents['title'] = $position;
+          // $contents['nid'] = json_decode($entityid, TRUE);
+          // $contents[] = $text_info;
+          if ($langcode == 'en') {
+            $entityid_en = get_entityId($position, $textname, $langcode);
+            $contents['nid'] = json_decode($entityid_en, TRUE);
+            // Display  mool shloka for that position.
+            $entityid_mool = get_entityId($position, $textname, 'dv');
+            $node_mool = Node::load($entityid_mool);
+            $mool_shloka['content'] = $node_mool->field_gita_10589_text->value;
+
+            $metadata_mool = collect_metadata($entityid_mool, 'field_gita_10589_text', 'dv');
+            $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+
+          }
+          else {
+            $entityid = get_entityId($position, $textname, $langcode);
+            $contents['nid'] = json_decode($entityid, TRUE);
+            $node = Node::load($entityid);
+            $mool_shloka['content'] = $node->field_gita_10589_text->value;
+            $metadata_mool = collect_metadata($entityid, 'field_gita_10589_text', $langcode);
+            $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+
+          }
+
+          // $contents['field_gita_10589_text'] = $mool_shloka;
+          // IF other parameter are given e.g field and language.
+          $parameters = $_GET;
+
+          foreach ($parameters as $key => $parameter) {
+            $parameter_info = explode('_', $key);
+
+            if ($parameter_info[0] == 'field') {
+              if (count($parameter_info) >= 3) {
+
+                $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+                $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
+
+                $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+                if (doesBundleHaveField('node', 'gita', $field) == TRUE) {
+                  // Get the content for the field from table.
+                  $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
+                  if (!isset($_GET['mool_shloka'])) {
+                    $mool_shloka_flag = FALSE;
+
+                  }
+
+                  if ($table_lang == 'en') {
+                    $entityid_en = get_entityId($position, $textname, 'en');
+
+                    $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
+
+                    $metadata = collect_metadata($entityid_en, $field, 'en');
+                    $other_fields['content'] = $field_content;
+                    $other_fields['metadata'] = json_decode($metadata, TRUE);
+                    $contents[$field] = $other_fields;
+
+                  }
+                  else {
+                    // $entityid_dv = get_entityId($position, $textname, 'dv');
+                    $entityid_dv = get_entityId($position, $textname, $langcode);
+                    // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
+                    $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
+
+                    // $metadata = collect_metadata($entityid_dv, $field, 'dv');
+                    $metadata = collect_metadata($entityid_dv, $field, $langcode);
+                    $other_fields['content'] = $field_content;
+                    $other_fields['metadata'] = json_decode($metadata, TRUE);
+                    $contents[$field] = $other_fields;
+
+                  }
+
+                }
+                else {
+
+                  $flag = FALSE;
+                  // print_r('Given field does not exist');.
+                }
+
+              }
+
+            }
+
+          }
+          if ($mool_shloka_flag == TRUE) {
+            $contents['field_gita_10589_text'] = $mool_shloka;
+
+          }
+
+          if ($flag == FALSE) {
+            $message = [
+              'success' => 0,
+              'message' => "Field does not exist",
+
+            ];
+            $statuscode = 404;
+
+          }
+          else {
+
+            $message = $contents;
+            $statuscode = 200;
+          }
+
         }
       }
 
     }
-
     else {
-
       $message = [
         'success' => 0,
         'message' => 'Text does not exist',
@@ -145,4 +337,33 @@ class GetTextContents extends ResourceBase {
 
   }
 
+}
+
+/**
+ *
+ */
+function collect_metadata($entityid, $field_name, $langcode) {
+  $metadata = db_query('SELECT metadata FROM `heritage_field_meta_data` WHERE nid = :entityid AND language = :langcode AND field_name = :field_name', [':entityid' => $entityid, ':langcode' => $langcode, ':field_name' => $field_name])->fetchField();
+
+  return $metadata;
+}
+
+/**
+ *
+ */
+function get_entityId($positional_index, $bundle, $langcode) {
+  $term_position = db_query('SELECT entity_id FROM `taxonomy_term__field_position` WHERE field_position_value = :position AND bundle = :bundle', [':position' => $positional_index, ':bundle' => $bundle])->fetchField();
+
+  $entityid = db_query('SELECT entity_id FROM `node__field_positional_index` WHERE field_positional_index_target_id = :term_position AND langcode = :langcode', [':term_position' => $term_position, ':langcode' => $langcode])->fetchField();
+
+  return $entityid;
+
+}
+
+/**
+ *
+ */
+function doesBundleHaveField($entity_type, $bundle, $field_name) {
+  $all_bundle_fields = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type, $bundle);
+  return isset($all_bundle_fields[$field_name]);
 }

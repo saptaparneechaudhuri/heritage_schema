@@ -14,8 +14,8 @@ use Drupal\Core\Language\LanguageInterface;
  *   id = "add_text_content",
  *   label = @Translation("Add Contents to a Text"),
  *   uri_paths = {
- *     "canonical" = "/api/add/{textname}",
- * "https://www.drupal.org/link-relations/create" = "/api/add/{textname}"
+ *     "canonical" = "/api/add/{textid}",
+ * "https://www.drupal.org/link-relations/create" = "/api/add/{textid}"
  *   }
  * )
  */
@@ -30,7 +30,10 @@ class AddContent extends ResourceBase {
    * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object   *
    */
-  public function post($textname = NULL, $arg) {
+  public function post($textid = NULL, $arg) {
+
+    $info_present = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+    $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $info_present])->fetchField();
 
     // Check if the source of that id is present.
     if (count($arg) == 0) {

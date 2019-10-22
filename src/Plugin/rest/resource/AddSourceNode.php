@@ -12,8 +12,8 @@ use Drupal\rest\Plugin\ResourceBase;
  *   id = "add_source_info",
  *   label = @Translation("Add Sources to a Text"),
  *   uri_paths = {
- *     "canonical" = "/api/{textname}/add/source_node",
- * "https://www.drupal.org/link-relations/create" = "/api/{textname}/add/source_node"
+ *     "canonical" = "/api/{textid}/add/source_node",
+ * "https://www.drupal.org/link-relations/create" = "/api/{textid}/add/source_node"
  *   }
  * )
  */
@@ -28,12 +28,16 @@ class AddSourceNode extends ResourceBase {
    * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    */
-  public function post($textname = NULL, $arg) {
+  public function post($textid = NULL, $arg) {
     $in_correct = 0;
     $connection = \Drupal::database();
-    $info_present = $connection->query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname AND bundle = 'heritage_text'", [':textname' => $textname])->fetchField();
+    // $info_present = $connection->query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname AND bundle = 'heritage_text'", [':textname' => $textname])->fetchField();
+    $info_present = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+
     if (isset($info_present) && $info_present > 0) {
       $textid = $info_present;
+      $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+
       if (count($arg) == 0) {
         $message = [
           'success' => 0,
@@ -111,12 +115,7 @@ class AddSourceNode extends ResourceBase {
                 $vid = 'authors';
                 $term_name = $arg[$i]['author'];
 
-                
                 $arg[$i]['author'] = check_taxonomy($vid, $term_name);
-
-                
-
-                
 
                 $arg[$i]['source_nodeId'] = create_sourceNode($arg[$i]['title'], $arg[$i]['format'], $arg[$i]['type'], $arg[$i]['language'], $arg[$i]['author'], $textid);
 
@@ -126,7 +125,7 @@ class AddSourceNode extends ResourceBase {
                   'message' => 'source added',
                 ];
                 $statuscode = 200;
-              
+
               }
             }
           }
@@ -144,5 +143,3 @@ class AddSourceNode extends ResourceBase {
   }
 
 }
-
-

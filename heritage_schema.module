@@ -18,6 +18,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\CloseModalDialogCommand;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * @file
@@ -43,7 +44,10 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
   //                $arg2 = $language->getId();
   // }
   //            }
-  // print_r($arg2);exit;.
+  // print_r($arg2);exit;
+  // Find the route name of the form
+  // $route_name = \Drupal::routeMatch()->getRouteName();
+  // print_r($route_name);
   if ($form_id == 'node_heritage_text_form') {
     $form['field_machine_name']['#access'] = FALSE;
     $form['field_levels']['#access'] = FALSE;
@@ -96,6 +100,12 @@ function heritage_schema_form_alter(&$form, FormStateInterface $form_state, $for
     $form['actions']['submit']['#submit'][] = '_modal_form_example_ajax_submit';
     $form['actions']['submit']['#attributes']['class'][] = 'use-ajax-submit';
 
+  }
+
+  if ($form_id == 'node_gita_form') {
+    // Check for duplicates.
+    $form['#validate'][] = 'check_node_exists';
+    // $form['actions']['submit']['#submit'][] = 'content_form_submit';
   }
 
 }
@@ -862,5 +872,46 @@ function _modal_form_example_ajax_submit(array $form, FormStateInterface &$form_
   $response = new AjaxResponse();
   $response->addCommand(new CloseModalDialogCommand());
   $form_state->setResponse($response);
+
+}
+
+/**
+ *
+ */
+function check_node_exists($form, FormStateInterface &$form_state) {
+  // Select node title from database and also type
+  // language = $node->language->value;.
+  $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
+
+  // Foreach ($languages as $lang) {
+  //   if ($language == $lang->getName()) {
+  //     $language = $lang->getId();
+  //   }
+  // }
+  $title = $form_state->getValue('title')[0]['value'];
+  // $language = $form_state->getValue('language');
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
+  // print_r($language);exit;
+  $node_title = db_query('SELECT title FROM `node_field_data` WHERE title = :title AND langcode = :langcode', [':title' => $title, ':langcode' => $language])->fetchField();
+
+  if (!empty($node_title)) {
+    // Then the title already exists.
+    $form_state->setErrorByName('title', t('Node of the given title and language already exists.'));
+
+  }
+
+}
+
+/**
+ *
+ */
+function content_form_submit($form, FormStateInterface $form_state) {
+  $nodeid = $form_state->getValue('nid');
+  $node = Node::load($nodeid);
+  if (is_object($node)) {
+    $node->status->value = 0;
+    $node->save();
+  }
 
 }

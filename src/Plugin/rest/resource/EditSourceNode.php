@@ -13,8 +13,8 @@ use Drupal\node\Entity\Node;
  *   id = "edit_source_info",
  *   label = @Translation("Edit Sources of a Text"),
  *   uri_paths = {
- *     "canonical" = "/api/{textname}/edit/source_node/{sourceid}",
- * "https://www.drupal.org/link-relations/create" = "/api/{textname}/edit/source_node/{sourceid}"
+ *     "canonical" = "/api/{textid}/edit/source_node/{sourceid}",
+ * "https://www.drupal.org/link-relations/create" = "/api/{textid}/edit/source_node/{sourceid}"
  *   }
  * )
  */
@@ -32,12 +32,15 @@ class EditSourceNode extends ResourceBase {
    * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    */
-  public function post($textname = NULL, $sourceid = NULL, $arg) {
+  public function post($textid = NULL, $sourceid = NULL, $arg) {
     $in_correct = 0;
     $connection = \Drupal::database();
-    $info_present = $connection->query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname AND bundle = 'heritage_text'", [':textname' => $textname])->fetchField();
+    // $info_present = $connection->query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname AND bundle = 'heritage_text'", [':textname' => $textname])->fetchField();
+    $info_present = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+
     if (isset($info_present) && $info_present > 0) {
       $textid = $info_present;
+      $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
       $source_present = db_query("SELECT COUNT(*) FROM `heritage_source_info` WHERE text_id = :textid AND id = :sourceid", [':textid' => $textid, ':sourceid' => $sourceid])->fetchField();
 
       if ($source_present == 1) {

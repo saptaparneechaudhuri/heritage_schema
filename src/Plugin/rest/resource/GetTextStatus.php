@@ -5,6 +5,7 @@ namespace Drupal\heritage_schema\Plugin\rest\resource;
 use Drupal\rest\ModifiedResourceResponse;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\node\Entity\Node;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Provides a resource to get status of a text.
@@ -13,7 +14,7 @@ use Drupal\node\Entity\Node;
  *   id = "get_text_status",
  *   label = @Translation("Get the status of Text"),
  *   uri_paths = {
- *     "canonical" = "/api/text/{textname}/status",
+ *     "canonical" = "/api/text/{textid}/status",
  *   }
  * )
  */
@@ -28,7 +29,7 @@ class GetTextStatus extends ResourceBase {
    * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    */
-  public function get($textname = NULL) {
+  public function get($textid = NULL) {
 
     // Array to display as a response.
     $text_status = [];
@@ -36,13 +37,17 @@ class GetTextStatus extends ResourceBase {
 
     $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
 
-    $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname", [':textname' => $textname])->fetchField();
+    // $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE field_machine_name_value = :textname", [':textname' => $textname])->fetchField();
+    $textid = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
 
     // Original Content count present.
-    $original_content_count = db_query("SELECT COUNT(*) FROM `node__field_original_content` WHERE bundle = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchField();
-
+    // $original_content_count = db_query("SELECT COUNT(*) FROM `node__field_original_content` WHERE bundle = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchField();
     if (isset($textid) && $textid > 0) {
-      $text_status['id'] = $textid;
+      $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+      // Original Content count present.
+      $original_content_count = db_query("SELECT COUNT(*) FROM `node__field_original_content` WHERE bundle = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchField();
+
+      $text_status['id'] = json_decode($textid, TRUE);
       $text_status['machine_name'] = $textname;
 
       // Load the node of the given textid.
@@ -78,7 +83,6 @@ class GetTextStatus extends ResourceBase {
           $table_name = 'node__field_' . $textname . '_' . $available_sources[$i]->id . '_' . $available_sources[$i]->format;
 
           // Query to find out about the content present.
-         
           $content_present_text = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
 
           // Query to find out the language name of the source.
@@ -109,7 +113,7 @@ class GetTextStatus extends ResourceBase {
 
           $source_info = [];
 
-          $source_info['id'] = $available_sources[$i]->id;
+          $source_info['id'] = json_decode($available_sources[$i]->id, TRUE);
           $source_info['title'] = $available_sources[$i]->title;
           $source_info['author'] = $source_author;
           $source_info['total_number_of_content_present'] = $content_present_text;

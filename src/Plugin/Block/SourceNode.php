@@ -71,6 +71,7 @@ class SourceNode extends BlockBase implements ContainerFactoryPluginInterface {
   public function build() {
     $build = [];
     $sources = '';
+    //$link = '';
 
     // Create the link to add a new source.
     $attributes = [
@@ -124,9 +125,15 @@ class SourceNode extends BlockBase implements ContainerFactoryPluginInterface {
         // $filed_name = 'field_' . $text_name . '_' . $available_sources[$i]->id . '_text_value';
         // $langcode = 'dv';
         $content_present = db_query("SELECT COUNT(*) FROM " . $table_name . " WHERE bundle = :text_name", [':text_name' => $text_name])->fetchField();
-        $sources = $sources . $available_sources[$i]->title . '</br>(<small><i>Content Present: ' . $content_present . '</i></small>)</br>';
+        $url = \Drupal\Core\Url::fromRoute('entity.node.canonical', ['node' => $available_sources[$i]->id]);
+         $link = $this->pathLink->generate($available_sources[$i]->title, $url);
+       // $sources = $sources . $available_sources[$i]->title . '</br>(<small><i>Content Present: ' . $content_present . '</i></small>)</br>';
+        $sources = $sources . $link . '</br>(<small><i>Content Present: ' . $content_present . '</i></small>)</br>';
+       
+        
       }
     }
+    //$render = $sources . $source_node_add_link;
     $render = $sources . $source_node_add_link;
     $build['#markup'] = render($render);
     $build['#cache']['max-age'] = 0;
