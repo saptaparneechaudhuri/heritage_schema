@@ -62,7 +62,23 @@ class GetTextStatus extends ResourceBase {
       // Query to find the biography of the author.
       $text_author_bio = db_query("SELECT field_bio_value FROM `taxonomy_term__field_bio` WHERE entity_id	= :authid", [':authid' => $node->field_author_name->target_id])->fetchField();
 
+      // TOC for the text.
+      $structure = [];
+      $topLevelTerms = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE bundle=:bundle AND parent_target_id = 0)", [':bundle' => $textname])->fetchAll();
+      $topLevelTermsCount = count($topLevelTerms);
+
+      $level_labels = explode(',', $node->field_level_labels->value);
+
+      $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE 'Chapter%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
+      for ($i = 0; $i < count($query); $i++) {
+        $sublevels = calculate_sublevels($textname, $query[$i]->name);
+        $structure[$query[$i]->name] = (int) $sublevels;
+      }
+
       $text_status['title'] = $node->title->value;
+      $text_status['level_labels'] = $level_labels;
+      $text_status['total_first_level_terms'] = $topLevelTermsCount;
+      $text_status['structure'] = $structure;
       $text_status['author_name'] = [
         'name' => $text_author,
         'id' => $node->field_author_name->target_id,

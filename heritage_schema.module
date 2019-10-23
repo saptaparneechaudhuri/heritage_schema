@@ -915,3 +915,16 @@ function content_form_submit($form, FormStateInterface $form_state) {
   }
 
 }
+
+/**
+ *
+ */
+function calculate_sublevels($textname, $chapter) {
+
+  $chapter_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE name = :chapter AND vid = :textname", [':chapter' => $chapter, 'textname' => $textname])->fetchField();
+
+  $sublevels = db_query("SELECT field_sub_levels_value FROM `taxonomy_term__field_sub_levels` WHERE entity_id = :chapterid AND bundle = :textname", [':chapterid' => $chapter_tid, ':textname' => $textname])->fetchField();
+
+  return $sublevels;
+
+}

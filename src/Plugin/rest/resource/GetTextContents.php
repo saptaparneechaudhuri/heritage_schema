@@ -55,17 +55,7 @@ class GetTextContents extends ResourceBase {
             $flag = TRUE;
             $mool_shloka_flag = TRUE;
             $other_fields = [];
-            // Load the node.
-            // $node = Node::load($available_texts[$i]->nid);.
-            // if($mool_shloka_flag == TRUE) {
-            //   $mool_shloka['content'] = $node->field_gita_10589_text->value;
-            //   // Collect the metadata for mool shloka.
-            //   $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_gita_10589_text', 'dv');.
-            // $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
-            //   $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
-            //   $text_info['title'] = $available_texts[$i]->title;
-            //   $text_info['field_gita_10589_text'] = $mool_shloka;
-            // }.
+
             $parameters = $_GET;
             // If fields are given.
             if (isset($_GET['language'])) {
@@ -112,10 +102,9 @@ class GetTextContents extends ResourceBase {
                     }
 
                     else {
-                      // $entityid_dv = get_entityId($available_texts[$i]->title, $textname, 'dv');
+
                       $entityid_dv = get_entityId($available_texts[$i]->title, $textname, $langcode);
 
-                      // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
                       $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
                       $other_fields['content'] = $field_content;
 
@@ -143,9 +132,6 @@ class GetTextContents extends ResourceBase {
 
                   }
 
-                  // $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
-                  //    $text_info['title'] = $available_texts[$i]->title;
-                  //    $text_info[$field] = $node->{$field}->value;
                 }
 
               }
@@ -156,9 +142,13 @@ class GetTextContents extends ResourceBase {
               $node = Node::load($available_texts[$i]->nid);
               $mool_shloka['content'] = $node->field_gita_10589_text->value;
               // Collect the metadata for mool shloka.
-              $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_gita_10589_text', 'dv');
+              $metadata = $_GET['metadata'];
+              if (isset($_GET['metadata']) && $metadata == 1) {
+                $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_gita_10589_text', 'dv');
+                $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
 
-              $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
+              }
+
               $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
               $text_info['title'] = $available_texts[$i]->title;
               $text_info['field_gita_10589_text'] = $mool_shloka;
@@ -198,22 +188,6 @@ class GetTextContents extends ResourceBase {
           $mool_shloka = [];
           $other_fields = [];
 
-          // If ($langcode == 'en') {
-          //   // Display  mool shloka for that position.
-          //   $entityid_mool = get_entityId($position, $textname, 'dv');
-          //   $node_mool = Node::load($entityid_mool);
-          //   $mool_shloka['content'] = $node_mool->field_gita_10589_text->value;.
-          // $metadata_mool = collect_metadata($entityid_mool, 'field_gita_10589_text', 'dv');
-          //   $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
-          // }
-          // else {
-          //   $entityid = get_entityId($position, $textname, $langcode);
-          //    $node = Node::load($entityid);
-          //   $mool_shloka['content'] = $node->field_gita_10589_text->value;
-          //   $metadata_mool = collect_metadata($entityid, 'field_gita_10589_text', $langcode);
-          //   $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
-          // }
-          // $node_info['content'] = $mool_shloka;.
           $contents['title'] = $position;
           // $contents['nid'] = json_decode($entityid, TRUE);
           // $contents[] = $text_info;
@@ -224,9 +198,12 @@ class GetTextContents extends ResourceBase {
             $entityid_mool = get_entityId($position, $textname, 'dv');
             $node_mool = Node::load($entityid_mool);
             $mool_shloka['content'] = $node_mool->field_gita_10589_text->value;
+            $metadata = $_GET['metadata'];
+            if (isset($_GET['metadata']) && $metadata == 1) {
+              $metadata_mool = collect_metadata($entityid_mool, 'field_gita_10589_text', 'dv');
+              $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
 
-            $metadata_mool = collect_metadata($entityid_mool, 'field_gita_10589_text', 'dv');
-            $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+            }
 
           }
           else {
@@ -234,8 +211,12 @@ class GetTextContents extends ResourceBase {
             $contents['nid'] = json_decode($entityid, TRUE);
             $node = Node::load($entityid);
             $mool_shloka['content'] = $node->field_gita_10589_text->value;
-            $metadata_mool = collect_metadata($entityid, 'field_gita_10589_text', $langcode);
-            $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+            $metadata = $_GET['metadata'];
+            if (isset($_GET['metadata']) && $metadata == 1) {
+              $metadata_mool = collect_metadata($entityid, 'field_gita_10589_text', $langcode);
+              $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+
+            }
 
           }
 
@@ -267,9 +248,14 @@ class GetTextContents extends ResourceBase {
 
                     $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
 
-                    $metadata = collect_metadata($entityid_en, $field, 'en');
                     $other_fields['content'] = $field_content;
-                    $other_fields['metadata'] = json_decode($metadata, TRUE);
+                    $metadata = $_GET['metadata'];
+                    if (isset($_GET['metadata']) && $metadata == 1) {
+                      $metadata_info = collect_metadata($entityid_en, $field, 'en');
+                      $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+                    }
+
                     $contents[$field] = $other_fields;
 
                   }
@@ -279,10 +265,14 @@ class GetTextContents extends ResourceBase {
                     // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
                     $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
 
-                    // $metadata = collect_metadata($entityid_dv, $field, 'dv');
-                    $metadata = collect_metadata($entityid_dv, $field, $langcode);
                     $other_fields['content'] = $field_content;
-                    $other_fields['metadata'] = json_decode($metadata, TRUE);
+                    $metadata = $_GET['metadata'];
+                    if (isset($_GET['metadata']) && $metadata == 1) {
+                      $metadata_info = collect_metadata($entityid_dv, $field, $langcode);
+                      $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+                    }
+
                     $contents[$field] = $other_fields;
 
                   }
