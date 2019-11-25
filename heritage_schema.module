@@ -18,7 +18,6 @@ use Drupal\node\NodeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\CloseModalDialogCommand;
-use Drupal\Core\Language\LanguageInterface;
 
 /**
  * @file
@@ -332,13 +331,25 @@ function add_other_fields($bundle, $entity_type, array $labels, $machine_names, 
                         ]
       );
       $field->save();
+      // Manage form display settings for entity_reference field types
+      // options_shs stands for the machine name of the simple hierarchy select module enabled.
+      if ($field_types[$i] == 'entity_reference') {
+        entity_get_form_display($entity_type, $bundle, 'default')
+          ->setComponent($fieldname, [
+            'type' => 'options_shs',
+          ])
+          ->save();
 
-      // Make the field available in the entity creation form.
-      entity_get_form_display($entity_type, $bundle, 'default')
-        ->setComponent(
-      $fieldname
-      )
-        ->save();
+      }
+      else {
+
+        // Make the field available in the entity creation form.
+        entity_get_form_display($entity_type, $bundle, 'default')
+          ->setComponent(
+        $fieldname
+        )
+          ->save();
+      }
 
       // Assign display settings for the 'default' and 'teaser' view modes.
       entity_get_display($entity_type, $bundle, 'default')
@@ -876,20 +887,12 @@ function _modal_form_example_ajax_submit(array $form, FormStateInterface &$form_
 }
 
 /**
- *
+ * Custom function to check for node duplicated.
  */
 function check_node_exists($form, FormStateInterface &$form_state) {
-  // Select node title from database and also type
-  // language = $node->language->value;.
-  $languages = \Drupal::service('language_manager')->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
 
-  // Foreach ($languages as $lang) {
-  //   if ($language == $lang->getName()) {
-  //     $language = $lang->getId();
-  //   }
-  // }
   $title = $form_state->getValue('title')[0]['value'];
-  // $language = $form_state->getValue('language');
+
   $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
 
   // print_r($language);exit;
@@ -906,25 +909,280 @@ function check_node_exists($form, FormStateInterface &$form_state) {
 /**
  *
  */
-function content_form_submit($form, FormStateInterface $form_state) {
-  $nodeid = $form_state->getValue('nid');
-  $node = Node::load($nodeid);
-  if (is_object($node)) {
-    $node->status->value = 0;
-    $node->save();
-  }
+// Function content_form_submit($form, FormStateInterface $form_state) {
+//   $nodeid = $form_state->getValue('nid');
+//   $node = Node::load($nodeid);
+//   if (is_object($node)) {
+//     $node->status->value = 0;
+//     $node->save();
+//   }
+// }
+
+/**
+ * Custom function to calculate the sublevels for a text.
+ */
+function calculate_sublevels($textname, $chapter_tid) {
+
+  // $chapter_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE name = :chapter AND vid = :textname", [':chapter' => $chapter, 'textname' => $textname])->fetchField();
+  $sublevels = db_query("SELECT field_sub_levels_value FROM `taxonomy_term__field_sub_levels` WHERE entity_id = :chapterid AND bundle = :textname", [':chapterid' => $chapter_tid, ':textname' => $textname])->fetchField();
+
+  return $sublevels;
 
 }
 
 /**
  *
  */
-function calculate_sublevels($textname, $chapter) {
+function collect_metadata($entityid, $field_name, $langcode) {
+  $metadata = db_query('SELECT metadata FROM `heritage_field_meta_data` WHERE nid = :entityid AND language = :langcode AND field_name = :field_name', [':entityid' => $entityid, ':langcode' => $langcode, ':field_name' => $field_name])->fetchField();
 
-  $chapter_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE name = :chapter AND vid = :textname", [':chapter' => $chapter, 'textname' => $textname])->fetchField();
+  return $metadata;
+}
 
-  $sublevels = db_query("SELECT field_sub_levels_value FROM `taxonomy_term__field_sub_levels` WHERE entity_id = :chapterid AND bundle = :textname", [':chapterid' => $chapter_tid, ':textname' => $textname])->fetchField();
+/**
+ *
+ */
+function get_entityId($positional_index, $bundle, $langcode) {
+  $term_position = db_query('SELECT entity_id FROM `taxonomy_term__field_position` WHERE field_position_value = :position AND bundle = :bundle', [':position' => $positional_index, ':bundle' => $bundle])->fetchField();
 
-  return $sublevels;
+  $entityid = db_query('SELECT entity_id FROM `node__field_positional_index` WHERE field_positional_index_target_id = :term_position AND langcode = :langcode', [':term_position' => $term_position, ':langcode' => $langcode])->fetchField();
+
+  return $entityid;
 
 }
+
+/**
+ *
+ */
+function doesBundleHaveField($entity_type, $bundle, $field_name) {
+  $all_bundle_fields = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type, $bundle);
+  return isset($all_bundle_fields[$field_name]);
+}
+
+/**
+ * Returns message and statuscose as array
+ */
+// function display_contents($textname, $position = NULL, $parameters, $langcode, $metadata = NULL, $mool_shloka = NULL) {
+//   $contents = [];
+//   $response = [];
+
+//   // Find the nodes of type == 'ramayanam_test' and langcode = 'dv'.
+//   if ($position = NULL) {
+//     $available_texts = db_query("SELECT * FROM `node_field_data` WHERE type = :textname AND langcode = :langcode", [':textname' => $textname, ':langcode' => $langcode])->fetchAll();
+
+//     if (count($available_texts) > 0) {
+//       for ($i = 0; $i < count($available_texts); $i++) {
+//         $text_info = [];
+//         $mool_shloka = [];
+
+//         // Flag to test if the field exists.
+//         $flag = TRUE;
+//         $mool_shloka_flag = TRUE;
+//         $other_fields = [];
+
+//         foreach ($parameters as $key => $parameter) {
+//           $parameter_info = explode('_', $key);
+//           if ($parameter_info[0] == 'field') {
+//             if (count($parameter_info) >= 3) {
+//               $mool_shloka_flag = FALSE;
+//               $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+//               $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
+
+//               $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+
+//               if (doesBundleHaveField('node', $textname, $field) == TRUE) {
+//                 $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
+
+//                 if ($table_lang == 'en') {
+//                   // TODO: CHECK the get_entityid function for ramayanam.
+//                   $entityid_en = get_entityId($position, $textname, 'en');
+//                   $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
+
+//                   $other_fields['content'] = $field_content;
+//                   $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+//                   $text_info['title'] = $available_texts[$i]->title;
+
+//                 }
+//                 else {
+//                   $entityid_dv = get_entityId($position, $textname, $langcode);
+//                   $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
+
+//                   $other_fields['content'] = $field_content;
+//                   $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+//                   $text_info['title'] = $available_texts[$i]->title;
+
+//                 }
+
+//               }
+//               else {
+//                 // No field exists.
+//                 $flag = FALSE;
+//               }
+
+//               if ($flag == TRUE) {
+//                 $text_info[$field] = $other_fields;
+
+//               }
+//               else {
+//                 $message = [
+//                   'success' => 0,
+//                   'message' => "Field does not exist",
+
+//                 ];
+//                 $statuscode = 404;
+//                 $response[] = $message;
+//                 $response[] = $statuscode;
+
+//               }
+
+//             }
+//           }
+
+//         }
+//         if ($mool_shloka_flag == TRUE) {
+//           // When no parameters are given.
+//           $node = Node::load($available_texts[$i]->nid);
+//           // Add a mool s.
+//           $mool_shloka['content'] = $node->field_gita_25232_text->value;
+//           if ($metadata == 1) {
+//             $metadata_mool_sholka = collect_metadata($available_texts[$i]->nid, 'field_ramayanamtest_25234_text', 'dv');
+//             $mool_shloka['meta_data'] = json_decode($metadata_mool_sholka, TRUE);
+
+//           }
+//           $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+//           $text_info['title'] = $available_texts[$i]->title;
+//           $text_info['field_ramayanamtest_25234_text'] = $mool_shloka;
+
+//         }
+//         $contents[] = $text_info;
+
+//       }
+//       $response[] = $contents;
+//       $response[] = 200;
+
+//     }
+//   }
+//   else {
+//     if (isset($position) && $position > 0) {
+//       $flag = TRUE;
+//       $mool_shloka_flag = TRUE;
+
+//       // If only position parameter is given, display the mool shloka.
+//       $mool_shloka = [];
+//       $other_fields = [];
+
+//       $contents['title'] = $position;
+
+//   //     if ($langcode == 'en') {
+//   //       $entityid_en = get_entityId($position, $textname, $langcode);
+//   //       $contents['nid'] = json_decode($entityid_en, TRUE);
+//   //       // Display  mool shloka for that position.
+//   //       $entityid_mool = get_entityId($position, $textname, 'dv');
+//   //       $node_mool = Node::load($entityid_mool);
+//   //       $mool_shloka['content'] = $node_mool->field_ramayanamtest_25234_text->value;
+//   //       if ($metadata == 1) {
+//   //         $metadata_mool = collect_metadata($entityid_mool, 'field_ramayanamtest_25234_text', 'dv');
+//   //         $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+//   //       }
+
+//   //     }
+//   //     else {
+//   //       $entityid = get_entityId($position, $textname, $langcode);
+//   //       $contents['nid'] = json_decode($entityid, TRUE);
+//   //       $node = Node::load($entityid);
+//   //       $mool_shloka['content'] = $node->field_ramayanamtest_25234_text->value;
+//   //       if ($metadata == 1) {
+//   //         $metadata_mool = collect_metadata($entityid, 'field_ramayanamtest_25234_text', $langcode);
+//   //         $mool_shloka['meta_data'] = json_decode($metadata_mool, TRUE);
+
+//   //       }
+
+//   //     }
+
+//   //     // IF other parameter are given e.g field and language.
+//   //     foreach ($parameters as $key => $parameter) {
+//   //       $parameter_info = explode('_', $key);
+//   //       if ($parameter_info[0] == 'field') {
+//   //         if (count($parameter_info) >= 3) {
+//   //           $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+//   //           $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
+
+//   //           $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+//   //           if (doesBundleHaveField('node', $textname, $field) == TRUE) {
+//   //             // Get the content for the field from table.
+//   //             $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
+//   //             if ($mool_shloka == 0) {
+//   //               $mool_shloka_flag = FALSE;
+//   //             }
+
+//   //             if ($table_lang == 'en') {
+//   //               $entityid_en = get_entityId($position, $textname, 'en');
+
+//   //               $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
+
+//   //               $other_fields['content'] = $field_content;
+//   //               if ($metadata == 1) {
+//   //                 $metadata_info = collect_metadata($entityid_en, $field, 'en');
+//   //                 $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+//   //               }
+
+//   //              // $contents[$field] = $other_fields;
+//   //               $contents['entity_id'] = $entityid_en;
+
+//   //             }
+
+//   //             else {
+//   //               $entityid_dv = get_entityId($position, $textname, $langcode);
+//   //               $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
+
+//   //               $other_fields['content'] = $field_content;
+//   //               if ($metadata == 1) {
+//   //                 $metadata_info = collect_metadata($entityid_dv, $field, $langcode);
+//   //                 $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+//   //               }
+//   //               $contents[$field] = $other_fields;
+
+//   //             }
+
+//   //           }
+//   //           else {
+//   //             $flag = FALSE;
+//   //           }
+
+//   //         }
+
+//   //       }
+
+//   //     }
+//   //     if ($mool_shloka_flag == TRUE) {
+//   //       $contents['field_ramayanamtest_25234_text'] = $mool_shloka;
+
+//   //     }
+
+//   //     if ($flag == FALSE) {
+//   //       $message = [
+//   //         'success' => 0,
+//   //         'message' => "Field does not exist",
+
+//   //       ];
+//   //       $statuscode = 404;
+//   //       $response[] = $message;
+//   //       $response[] = $statuscode;
+
+//   //     }
+//   //     else {
+//   //       $response[] = $contents;
+//   //       $response[] = 200;
+//   //     }
+
+//      }
+//    }
+
+//   return $contents;
+
+// }

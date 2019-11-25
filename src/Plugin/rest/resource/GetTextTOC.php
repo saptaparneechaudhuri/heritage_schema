@@ -19,8 +19,14 @@ use Drupal\node\Entity\Node;
  */
 class GetTextTOC extends ResourceBase {
 
-  /**
+   /**
+   * Responds to GET requests for retrieving the status of a text.
    *
+   * @param textid
+   *   Unique ID of the text
+   *
+   * @return \Drupal\rest\ModifiedResourceResponse
+   *   The HTTP response object.
    */
   public function get($textid = NULL) {
 
@@ -42,7 +48,7 @@ class GetTextTOC extends ResourceBase {
 
       $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE 'Chapter%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
       for ($i = 0; $i < count($query); $i++) {
-        $sublevels = calculate_sublevels($textname, $query[$i]->name);
+        $sublevels = calculate_sublevels($textname, $query[$i]->tid);
         $structure[$query[$i]->name] = (int) $sublevels;
       }
 
