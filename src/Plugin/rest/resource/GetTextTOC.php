@@ -19,7 +19,7 @@ use Drupal\node\Entity\Node;
  */
 class GetTextTOC extends ResourceBase {
 
-   /**
+  /**
    * Responds to GET requests for retrieving the status of a text.
    *
    * @param textid
@@ -38,6 +38,9 @@ class GetTextTOC extends ResourceBase {
 
     if (isset($textid) && $textid > 0) {
       $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
+      // Query to find the number of levels.
+      $levels = db_query("SELECT field_levels_value FROM `node__field_levels` WHERE entity_id = :textid and bundle = :bundle ", [':textid' => $textid, ':bundle' => 'heritage_text'])->fetchField();
+
       // Load the node.
       $text_node = Node::load($textid);
       $machine_name = $text_node->field_machine_name->value;
@@ -46,10 +49,51 @@ class GetTextTOC extends ResourceBase {
       $topLevelTerms = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE bundle=:bundle AND parent_target_id = 0)", [':bundle' => $machine_name])->fetchAll();
       $topLevelTermsCount = count($topLevelTerms);
 
-      $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE 'Chapter%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
-      for ($i = 0; $i < count($query); $i++) {
-        $sublevels = calculate_sublevels($textname, $query[$i]->tid);
-        $structure[$query[$i]->name] = (int) $sublevels;
+      if ($levels == 1) {
+        // Select the level labels like Chapter, Sloka etc.
+        $level_labels = explode(',', $text_node->field_level_labels->value);
+
+        $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE '{$level_labels[0]}%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
+
+        for ($i = 0; $i < count($query); $i++) {
+          $structure[$i] = $query[$i]->name;
+        }
+
+      }
+
+      if ($levels == 2) {
+        // Select the level labels like Chapter, Sloka etc.
+        $level_labels = explode(',', $text_node->field_level_labels->value);
+
+        $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE '{$level_labels[0]}%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
+        for ($i = 0; $i < count($query); $i++) {
+          $sublevels = calculate_sublevels($textname, $query[$i]->tid);
+          $structure[$query[$i]->name] = (int) $sublevels;
+        }
+      }
+
+      if ($levels == 3) {
+        // Select the level labels like Chapter, Sloka etc.
+        $level_labels = explode(',', $text_node->field_level_labels->value);
+        $sub_levels = [];
+        $query = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE '{$level_labels[0]}%' AND vid = :textname ORDER BY tid ASC", [':textname' => $textname])->fetchAll();
+        for ($i = 0; $i < count($query); $i++) {
+          $sargas = calculate_sublevels($textname, $query[$i]->tid);
+          $sub_levels[$level_labels[1]] = (int) $sargas;
+
+          // Calculate the number of slokas
+          // query for sarga.
+          $query_sarga = db_query("SELECT * FROM `taxonomy_term_field_data` WHERE name LIKE '{$level_labels[1]}%' AND vid = :textname AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent_tid)", [':textname' => $textname, ':parent_tid' => $query[$i]->tid])->fetchAll();
+
+          for ($j = 0; $j < count($query_sarga); $j++) {
+            $sloka_number = calculate_sublevels($textname, $query_sarga[$j]->tid);
+            $sub_levels[$level_labels[2]] = (int) $sloka_number;
+          }
+
+          $structure[$query[$i]->name] = $sub_levels;
+
+        }
+
       }
 
       $toc_info['level_labels'] = $level_labels;
