@@ -34,6 +34,7 @@ class AddContent extends ResourceBase {
 
     $info_present = db_query("SELECT entity_id FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
     $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $info_present])->fetchField();
+    $text_node = Node::Load($info_present);
 
     // Check if the source of that id is present.
     if (count($arg) == 0) {
@@ -113,35 +114,79 @@ class AddContent extends ResourceBase {
 
                   }
                   else {
-                    // Create a text node.
+
+                    // Create a text node, if the text does not exist.
                     $str = explode('.', $arg[$i]['positional_index']);
-                    $chapter_name = 'Chapter ' . $str[0];
-                    $sloka_name = 'Sloka ' . $str[1];
+                    if (count($str) == 2) {
+                      // Check the level labels.
+                      $level_labels = explode(',', $text_node->field_level_labels->value);
 
-                    // $language_id = db_query('SELECT tid FROM `taxonomy_term_field_data` WHERE name = :language', [':language' => $arg[$i]['language']])->fetchField();
-                    // $arg[$i]['language'] = $language_id;
-                    $chapter_id = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name", [':vid' => 'gita', ':name' => $chapter_name])->fetchField();
+                      // $chapter_name = 'Chapter ' . $str[0];
+                      //  $sloka_name = 'Sloka ' . $str[1];
+                      $chapter_name = $level_labels[0] . ' ' . $str[0];
+                      $sloka_name = $level_labels[1] . ' ' . $str[1];
 
-                    $sloka_id = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent_tid)", [':vid' => 'gita', ':name' => $sloka_name, ':parent_tid' => $chapter_id])->fetchField();
+                      // $language_id = db_query('SELECT tid FROM `taxonomy_term_field_data` WHERE name = :language', [':language' => $arg[$i]['language']])->fetchField();
+                      // $arg[$i]['language'] = $language_id;
+                      $chapter_id = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name", [':vid' => $textname, ':name' => $chapter_name])->fetchField();
 
-                    $node = entity_create('node', [
+                      $sloka_id = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent_tid)", [':vid' => $textname, ':name' => $sloka_name, ':parent_tid' => $chapter_id])->fetchField();
 
-                      'type' => 'gita',
-                      'title' => $arg[$i]['positional_index'],
-                      'langcode' => $arg[$i]['language'],
+                      $node = entity_create('node', [
 
-                      'field_positional_index' => [['target_id' => (int) $chapter_id], ['target_id' => (int) $sloka_id]],
-                      $field_name => ['value' => $arg[$i][$field_name], 'format' => 'full_html'],
+                        'type' => $textname,
+                        'title' => $arg[$i]['positional_index'],
+                        'langcode' => $arg[$i]['language'],
 
-                    ]
+                        'field_positional_index' => [['target_id' => (int) $chapter_id], ['target_id' => (int) $sloka_id]],
+                        $field_name => ['value' => $arg[$i][$field_name], 'format' => 'full_html'],
+
+                      ]
                       );
-                    $node->save();
+                      $node->save();
 
-                    $message = [
-                      'success' => 1,
-                      'message' => 'text created and content posted',
-                    ];
-                    $statuscode = 200;
+                      $message = [
+                        'success' => 1,
+                        'message' => 'text created and content posted',
+                      ];
+                      $statuscode = 200;
+                    }
+                    if (count($str) == 3) {
+                      $level_labels = explode(',', $text_node->field_level_labels->value);
+
+                      $kanda_name = $level_labels[0] . ' ' . $str[0];
+                      $sarga_name = $level_labels[1] . ' ' . $str[1];
+                      $sloka_name = $level_labels[2] . ' ' . $str[2];
+
+                      $kanda_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name", [':vid' => $textname, ':name' => $kanda_name])->fetchField();
+
+                      // Sarga tid.
+                      $sarga_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent_tid)", [':vid' => $textname, ':name' => $sarga_name, ':parent_tid' => $kanda_tid])->fetchField();
+
+                      // Sloka tid.
+                      $sloka_tid = db_query("SELECT tid FROM `taxonomy_term_field_data` WHERE vid = :vid AND name = :name AND tid IN (SELECT entity_id FROM `taxonomy_term__parent` WHERE parent_target_id = :parent_tid)", [':vid' => $textname, ':name' => $sloka_name, ':parent_tid' => $sarga_tid])->fetchField();
+
+                      $node = entity_create('node', [
+
+                        'type' => $textname,
+                        'title' => $arg[$i]['positional_index'],
+                        'langcode' => $arg[$i]['language'],
+
+                        'field_positional_index' => [['target_id' => (int) $kanda_tid], ['target_id' => (int) $sarga_tid], ['target_id' => (int) $sloka_tid]],
+                        $field_name => ['value' => $arg[$i][$field_name], 'format' => 'full_html'],
+
+                      ]
+                        );
+
+                      $node->save();
+                      $message = [
+                        'success' => 1,
+                        'message' => 'text created and content posted',
+                      ];
+                      $statuscode = 200;
+
+                    }
+
                   }
                   // Else create a new node, to be done later.
                 }
