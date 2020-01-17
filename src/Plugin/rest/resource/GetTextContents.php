@@ -6,6 +6,8 @@ use Drupal\rest\ModifiedResourceResponse;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\node\Entity\Node;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\file\Entity\File;
+
 
 /**
  * Provides a resource to get status of a text.
@@ -43,7 +45,7 @@ class GetTextContents extends ResourceBase {
       $textname = db_query("SELECT field_machine_name_value FROM `node__field_machine_name` WHERE entity_id = :textid", [':textid' => $textid])->fetchField();
 
       // Entity id of the mool shloka.
-      $moolid = db_query("SELECT id FROM `heritage_source_info` WHERE text_id = :textid AND type = :type", [':textid' => $textid , 'type' => 'moolam'])->fetchField();
+      $moolid = db_query("SELECT id FROM `heritage_source_info` WHERE text_id = :textid AND type = :type", [':textid' => $textid, 'type' => 'moolam'])->fetchField();
 
       // If no position parameter is given.
       if (!isset($_GET['position'])) {
@@ -198,6 +200,7 @@ class GetTextContents extends ResourceBase {
           // If only position parameter is given, display the mool shloka and.
           $mool_shloka = [];
           $other_fields = [];
+          $audio_fields = [];
 
           $contents['title'] = $position;
           // $contents['nid'] = json_decode($entityid, TRUE);
@@ -253,64 +256,82 @@ class GetTextContents extends ResourceBase {
               if (count($parameter_info) >= 3) {
 
                 $field = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3];
-                $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
-
-                $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
-
-                if (doesBundleHaveField('node', $textname, $field) == TRUE) {
-                  // Get the content for the field from table.
+                if ($parameter_info[3] == 'audio') {
+                  $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_target_id';
+                  // Find the file id.
+                  $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
                   $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
-                  if (!isset($_GET['mool_shloka'])) {
-                    $mool_shloka_flag = FALSE;
-
-                  }
-
-                  if ($table_lang == 'en') {
-                    $entityid_en = get_entityId($position, $textname, 'en');
-
-                    $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
-
-                    $other_fields['content'] = $field_content;
-                    $metadata = $_GET['metadata'];
-                    if (isset($_GET['metadata']) && $metadata == 1) {
-                      $metadata_info = collect_metadata($entityid_en, $field, 'en');
-                      $other_fields['metadata'] = json_decode($metadata_info, TRUE);
-
-                    }
-
-                    $contents[$field] = $other_fields;
-
-                  }
-                  else {
-                    // $entityid_dv = get_entityId($position, $textname, 'dv');
-                    $entityid_dv = get_entityId($position, $textname, $langcode);
-                    // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
-                    $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
-
-                    $other_fields['content'] = $field_content;
-                    $metadata = $_GET['metadata'];
-                    if (isset($_GET['metadata']) && $metadata == 1) {
-                      $metadata_info = collect_metadata($entityid_dv, $field, $langcode);
-                      $other_fields['metadata'] = json_decode($metadata_info, TRUE);
-
-                    }
-
-                    $contents[$field] = $other_fields;
-
-                  }
+                  $entityid = get_entityId($position, $textname, $table_lang);
+                  $fid = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid", [':textname' => $textname, ':entityid' => $entityid])->fetchField();
+                  $file = File::load($fid);
+                  $path = $file->url();
+                  $audio_fields['audio'] = $path;
+                  $mool_shloka_flag = FALSE;
+                  $contents[$field] = $audio_fields;
 
                 }
                 else {
 
-                  $flag = FALSE;
-                  // print_r('Given field does not exist');.
-                }
+                  $field_name = 'field_' . $parameter_info[1] . '_' . $parameter_info[2] . '_' . $parameter_info[3] . '_value';
+
+                  $table_name = 'node__field_' . $textname . '_' . $parameter_info[2] . '_' . $parameter_info[3];
+
+                  if (doesBundleHaveField('node', $textname, $field) == TRUE) {
+                    // Get the content for the field from table.
+                    $table_lang = db_query("SELECT langcode FROM " . $table_name . " WHERE bundle = :textname", [':textname' => $textname])->fetchField();
+                    if (!isset($_GET['mool_shloka'])) {
+                      $mool_shloka_flag = FALSE;
+
+                    }
+
+                    if ($table_lang == 'en') {
+                      $entityid_en = get_entityId($position, $textname, 'en');
+
+                      $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
+
+                      $other_fields['content'] = $field_content;
+                      $metadata = $_GET['metadata'];
+                      if (isset($_GET['metadata']) && $metadata == 1) {
+                        $metadata_info = collect_metadata($entityid_en, $field, 'en');
+                        $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+                      }
+
+                      $contents[$field] = $other_fields;
+
+                    }
+                    else {
+                      // $entityid_dv = get_entityId($position, $textname, 'dv');
+                      $entityid_dv = get_entityId($position, $textname, $langcode);
+                      // $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => 'dv'])->fetchField();
+                      $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
+
+                      $other_fields['content'] = $field_content;
+                      $metadata = $_GET['metadata'];
+                      if (isset($_GET['metadata']) && $metadata == 1) {
+                        $metadata_info = collect_metadata($entityid_dv, $field, $langcode);
+                        $other_fields['metadata'] = json_decode($metadata_info, TRUE);
+
+                      }
+
+                      $contents[$field] = $other_fields;
+
+                    }
+
+                  }
+                  else {
+
+                    $flag = FALSE;
+                    // print_r('Given field does not exist');.
+                  }
+                }  // for else after audio
 
               }
 
             }
 
           }
+          
           if ($mool_shloka_flag == TRUE) {
             $var = 'field_' . $textname . '_' . $moolid . '_text';
 
