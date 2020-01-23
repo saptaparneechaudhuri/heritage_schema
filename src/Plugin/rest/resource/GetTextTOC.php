@@ -57,6 +57,8 @@ class GetTextTOC extends ResourceBase {
 
         for ($i = 0; $i < count($query); $i++) {
           $structure[$i] = $query[$i]->name;
+          //$structure[$query[$i]->name];
+
         }
 
       }

@@ -99,7 +99,9 @@ class GetTextContents extends ResourceBase {
                       $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_en, ':langcode' => 'en'])->fetchField();
                       $other_fields['content'] = $field_content;
 
-                      $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+                     // $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+                     $text_info['nid'] = $available_texts[$i]->nid;
+
 
                       $text_info['title'] = $available_texts[$i]->title;
 
@@ -113,7 +115,9 @@ class GetTextContents extends ResourceBase {
                       $field_content = db_query("SELECT $field_name FROM " . $table_name . " WHERE bundle = :textname AND entity_id = :entityid AND langcode = :langcode", [':textname' => $textname, ':entityid' => $entityid_dv, ':langcode' => $langcode])->fetchField();
                       $other_fields['content'] = $field_content;
 
-                      $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+                     // $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+                      $text_info['nid'] = $available_texts[$i]->nid;
+
 
                       $text_info['title'] = $available_texts[$i]->title;
 
@@ -160,7 +164,9 @@ class GetTextContents extends ResourceBase {
 
               }
 
-              $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+             // $text_info['nid'] = json_decode($available_texts[$i]->nid, TRUE);
+              $text_info['nid'] = $available_texts[$i]->nid;
+
               $text_info['title'] = $available_texts[$i]->title;
               // $text_info['field_gita_10589_text'] = $mool_shloka;
               $text_info[$var] = $mool_shloka;
@@ -207,13 +213,27 @@ class GetTextContents extends ResourceBase {
           // $contents[] = $text_info;
           if ($langcode == 'en') {
             $entityid_en = get_entityId($position, $textname, $langcode);
-            $contents['nid'] = json_decode($entityid_en, TRUE);
+           // $contents['nid'] = json_decode($entityid_en, TRUE);
+            $contents['nid'] = $entityid_en;
+
             // Display  mool shloka for that position.
             $entityid_mool = get_entityId($position, $textname, 'dv');
             $node_mool = Node::load($entityid_mool);
             $var = 'field_' . $textname . '_' . $moolid . '_text';
             // $mool_shloka['content'] = $node_mool->field_gita_10589_text->value;
+
+            // Check if the field has value 
+            if(isset($node_mool->{$var}->value)) {
             $mool_shloka['content'] = $node_mool->{$var}->value;
+
+
+            }
+            else {
+            $mool_shloka['content'] = NULL;
+
+
+            }
+           // $mool_shloka['content'] = $node_mool->{$var}->value;
 
             $metadata = $_GET['metadata'];
             if (isset($_GET['metadata']) && $metadata == 1) {
@@ -228,11 +248,25 @@ class GetTextContents extends ResourceBase {
           }
           else {
             $entityid = get_entityId($position, $textname, $langcode);
-            $contents['nid'] = json_decode($entityid, TRUE);
+
+           
+            //$contents['nid'] = json_decode($entityid, TRUE);
+            $contents['nid'] = $entityid;
+
+           // $entityid = (int) $entityid;
             $node = Node::load($entityid);
             // $mool_shloka['content'] = $node->field_gita_10589_text->value;
             $var = 'field_' . $textname . '_' . $moolid . '_text';
-            $mool_shloka['content'] = $node->{$var}->value;
+
+            // Check if there is any content present in the field
+            if(isset($node->{$var}->value)) {
+              $mool_shloka['content'] = $node->{$var}->value;
+
+            }
+            else {
+              $mool_shloka['content'] = NULL;
+            }
+            
 
             $metadata = $_GET['metadata'];
             if (isset($_GET['metadata']) && $metadata == 1) {

@@ -947,7 +947,7 @@ function get_entityId($positional_index, $bundle, $langcode) {
 
   $entityid = db_query('SELECT entity_id FROM `node__field_positional_index` WHERE field_positional_index_target_id = :term_position AND langcode = :langcode', [':term_position' => $term_position, ':langcode' => $langcode])->fetchField();
 
-  return $entityid;
+  return (int) $entityid;
 
 }
 
